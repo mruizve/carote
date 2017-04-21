@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<package>
+	<name>carote</name>
+	<version>0.0.0</version>
+	<description>CAROTE teleoperation system</description>
+	<maintainer email="ruiz@dis.uniroma1.it">manuel</maintainer>
+	<license>LGPLv3</license>
+	<url type="website">https://www.github.com/mruizve/carote</url>
+
+	<buildtool_depend>catkin</buildtool_depend>
+	<build_depend>pcl</build_depend>
+	<build_depend>pcl_ros</build_depend>
+
+<!--
+	<build_depend>depth_image_proc</build_depend>
+	<build_depend>image_proc</build_depend>
+	<build_depend>openni2_camera</build_depend>
+	<build_depend>rgdb_launch</build_depend>
+	<build_depend>roscpp</build_depend>
+	<build_depend>std_msgs</build_depend>
+	<build_depend>tf</build_depend>
+-->
+
+	<run_depend>pcl</run_depend>
+	<run_depend>pcl_ros</run_depend>
+	<run_depend>depth_image_proc</run_depend>
+	<run_depend>image_proc</run_depend>
+	<run_depend>openni2_camera</run_depend>
+	<run_depend>rgbd_launch</run_depend>
+	<run_depend>roscpp</run_depend>
+	<run_depend>std_msgs</run_depend>
+	<run_depend>tf</run_depend>
+
+	<!-- The export tag contains other, unspecified, tags -->
+	<export>
+		<!-- Other tools can request additional information be placed here -->
+	</export>
+</package>

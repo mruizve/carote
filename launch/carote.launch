@@ -1,0 +1,32 @@
+<launch>
+	<arg name="camera" default="camera" />
+	<arg name="auto_exposure" default="false" />
+	<arg name="auto_white_balance" default="false" />
+
+	<include file="$(find openni2_launch)/launch/openni2.launch">
+		<arg name="camera" default="$(arg camera)" />
+	</include>
+
+	<group ns="carote">
+		<node name="target" pkg="carote" type="target" respawn="true" output="screen">
+			<!-- input processing -->
+			<param name="calibration" value="0"/>
+			<!-- HSV color space --> <rosparam param="color_range_low">[150,110,130]</rosparam>
+			<!-- HSV color space --> <rosparam param="color_range_high">[180,255,255]</rosparam>
+			<param name="depth_range_low" value="0.3"/>
+			<param name="depth_range_high" value="1.3"/>
+			<param name="contours_threshold" value="30"/>
+
+			<!-- output processing -->
+			<param name="position_filter_N" value="3"/>
+			<param name="velocity_filter_N" value="4"/> <!-- range from 3 to 6 -->
+
+			<!-- input and output topics and frames -->
+			<param name="sensor" value="/$(arg camera)"/>
+			<param name="sensor_frame" value="camera_depth_optical_frame"/>
+			<param name="point_cloud" value="/depth_registered/points"/>
+			<param name="target_position" value="/position"/>
+			<param name="target_velocity" value="/velocity"/>
+		</node> 
+	</group>
+</launch>
