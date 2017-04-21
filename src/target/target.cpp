@@ -1,4 +1,5 @@
 #include<Eigen/Dense>
+#include<cv_bridge/cv_bridge.h>
 #include<geometry_msgs/PointStamped.h>
 #include<geometry_msgs/Vector3Stamped.h>
 #include<pcl_conversions/pcl_conversions.h>
@@ -29,7 +30,8 @@ static void depthOnChange(int current, void *arg)
 carote::Target::Target(std::string _name)
 :
 	node_("~"),
-	name_(_name)
+	name_(_name),
+	target_mask_it_(node_)
 {
 	// input processing stuff: color/depth ranges and thresholds
 	std::vector<int> aux;
@@ -55,6 +57,11 @@ carote::Target::Target(std::string _name)
 	{
 		this->calibrationGUI();
 	}
+
+	// input processing stuff: dynamic reconfiguration of ranges and thresholds
+	dynamic_reconfigure::Server<carote::CalibrationConfig>::CallbackType f;
+	f=boost::bind(&carote::Target::calibrationDR,this,_1, _2);
+	server_.setCallback(f);
 
 	// input processing stuff: morphology kernels for mask filtering
 	morphology_[0]=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(3,3),cv::Point(-1,-1));
@@ -83,18 +90,32 @@ carote::Target::Target(std::string _name)
 	target_velocity_id_=getParam<std::string>(node_,"target_velocity","/velocity");
 	target_velocity_id_=_name+target_velocity_id_;
 
+	target_mask_id_=getParam<std::string>(node_,"target_mask","/mask");
+	target_mask_id_=_name+target_mask_id_;
+
 	// prepare for listening to input topic
 	cloud_sub_=node_.subscribe(cloud_id_,1,&carote::Target::callback,this);
 
 	// prepare for advertise to the output topic
 	target_position_pub_=node_.advertise<geometry_msgs::PointStamped>(target_position_id_,1);
 	target_velocity_pub_=node_.advertise<geometry_msgs::Vector3Stamped>(target_velocity_id_,1);
+	target_mask_pub_=target_mask_it_.advertise(target_mask_id_,1);
 }
 
 carote::Target::~Target(void)
 {
 	delete position_filter_;
 	delete velocity_filter_;
+}
+
+void carote::Target::calibrationDR(carote::CalibrationConfig &config, uint32_t level)
+{
+	calibration_=config.Calibration;
+	color_low_=cv::Scalar(config.H_low,config.S_low,config.V_low);
+	color_high_=cv::Scalar(config.H_high,config.S_high,config.V_high);
+	depth_low_=config.D_low;
+	depth_high_=config.D_high;
+	contours_threshold_=config.C_threshold;
 }
 
 void carote::Target::calibrationGUI(void)
@@ -270,9 +291,11 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 
 	// compute target coordinates
 	
-	// show target mask
+	// publish target mask
 	if( calibration_ )
 	{
+		sensor_msgs::ImagePtr mask_msg=cv_bridge::CvImage(std_msgs::Header(),"bgr8",mask).toImageMsg();
+		target_mask_pub_.publish(mask_msg);
 		cv::imshow(name_,mask);
 		cv::waitKey(1);
 	}

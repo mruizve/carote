@@ -8,17 +8,22 @@ project(carote)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  depth_image_proc
-  image_proc
   cv_bridge
+  dynamic_reconfigure
+  geometry_msgs
+  image_transport
   pcl_conversions
   pcl_msgs
   pcl_ros
-  openni2_camera
-  rgbd_launch
+  openni2_launch
   roscpp
   std_msgs
   tf
+)
+
+# add dynamic reconfigure api
+generate_dynamic_reconfigure_options(
+  cfg/Calibration.cfg
 )
 
 ## System dependencies are found with CMake's conventions

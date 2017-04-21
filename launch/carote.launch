@@ -18,13 +18,14 @@
 			<param name="contours_threshold" value="30"/>
 
 			<!-- output processing -->
-			<param name="position_filter_N" value="3"/>
+			<param name="position_filter_N" value="3"/> <!-- range from 1 to ... -->
 			<param name="velocity_filter_N" value="4"/> <!-- range from 3 to 6 -->
 
 			<!-- input and output topics and frames -->
 			<param name="sensor" value="/$(arg camera)"/>
 			<param name="sensor_frame" value="camera_depth_optical_frame"/>
 			<param name="point_cloud" value="/depth_registered/points"/>
+			<param name="target_mask" value="/mask"/>
 			<param name="target_position" value="/position"/>
 			<param name="target_velocity" value="/velocity"/>
 		</node> 

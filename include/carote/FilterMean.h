@@ -3,7 +3,6 @@
 
 #include<boost/circular_buffer.hpp>
 #include<Eigen/Dense>
-#include<geometry_msgs/Vector3.h>
 #include<ros/ros.h>
 
 namespace carote

@@ -8,25 +8,17 @@
 	<url type="website">https://www.github.com/mruizve/carote</url>
 
 	<buildtool_depend>catkin</buildtool_depend>
+	<build_depend>dynamic_reconfigure</build_depend>
+	<build_depend>geometry_msgs</build_depend>
+	<build_depend>cv_bridge</build_depend>
 	<build_depend>pcl</build_depend>
 	<build_depend>pcl_ros</build_depend>
 
-<!--
-	<build_depend>depth_image_proc</build_depend>
-	<build_depend>image_proc</build_depend>
-	<build_depend>openni2_camera</build_depend>
-	<build_depend>rgdb_launch</build_depend>
-	<build_depend>roscpp</build_depend>
-	<build_depend>std_msgs</build_depend>
-	<build_depend>tf</build_depend>
--->
-
+	<run_depend>dynamic_reconfigure</run_depend>
+	<run_depend>geometry_msgs</run_depend>
+	<run_depend>openni2_launch</run_depend>
 	<run_depend>pcl</run_depend>
 	<run_depend>pcl_ros</run_depend>
-	<run_depend>depth_image_proc</run_depend>
-	<run_depend>image_proc</run_depend>
-	<run_depend>openni2_camera</run_depend>
-	<run_depend>rgbd_launch</run_depend>
 	<run_depend>roscpp</run_depend>
 	<run_depend>std_msgs</run_depend>
 	<run_depend>tf</run_depend>

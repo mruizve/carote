@@ -2,8 +2,11 @@
 #define _CAROTE_TARGET_H_
 
 #include<ros/ros.h>
+#include<dynamic_reconfigure/server.h>
+#include<image_transport/image_transport.h>
 #include<opencv2/opencv.hpp>
 #include<sensor_msgs/PointCloud2.h>
+#include "carote/CalibrationConfig.h"
 #include "carote/FilterMean.h"
 #include "carote/FilterHoloborodko.h"
 
@@ -15,6 +18,7 @@ namespace carote
 			Target(std::string _name);
 			~Target(void);
 
+			void calibrationDR(carote::CalibrationConfig &config, uint32_t level);
 			void calibrationGUI(void);
 			void callback(const sensor_msgs::PointCloud2::ConstPtr _msg);
 
@@ -32,8 +36,11 @@ namespace carote
 			// ros stuff: output topic and frames
 			std::string target_position_id_;
 			std::string target_velocity_id_;
+			std::string target_mask_id_;
 			ros::Publisher target_position_pub_;
 			ros::Publisher target_velocity_pub_;
+			image_transport::ImageTransport target_mask_it_;
+			image_transport::Publisher target_mask_pub_;
 
 			// input processing
 			size_t contours_threshold_;
@@ -42,6 +49,9 @@ namespace carote
 			cv::Mat morphology_[2];
 			cv::Scalar color_low_;
 			cv::Scalar color_high_;
+
+			// input processing + ros stuff
+			dynamic_reconfigure::Server<carote::CalibrationConfig> server_;
 
 			// output processing
 			MeanFilter *position_filter_;

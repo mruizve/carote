@@ -1,5 +1,6 @@
 # target tracker
 add_executable( target target/node.cpp target/target.cpp )
+add_dependencies(target ${PROJECT_NAME}_gencfg)
 target_link_libraries( target filtering ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBS} )
 
 # utils library
