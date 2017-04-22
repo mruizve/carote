@@ -12,12 +12,7 @@ int main(int argc, char **argv)
 	carote::Target target(ros::this_node::getName());
 
 	// handle events
-	ros::Rate rate(100);
-	while( ros::ok() )
-	{
-		ros::spinOnce();
-		rate.sleep();
-	}
+	ros::spin();
 	
 	return 0;
 }

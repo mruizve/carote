@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 # add dynamic reconfigure api
 generate_dynamic_reconfigure_options(
-  cfg/Calibration.cfg
+  cfg/Target.cfg
 )
 
 ## System dependencies are found with CMake's conventions

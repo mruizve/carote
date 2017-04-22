@@ -6,142 +6,83 @@
 #include "carote/Params.h"
 #include "carote/Target.h"
 
-// trackbars callback function
-static void colorOnChange(int current, void *arg)
-{
-	double *val=(double*)arg;
-
-	if( NULL!=val )
-	{
-		*val=(double)current;
-	}
-}
-
-static void depthOnChange(int current, void *arg)
-{
-	double *val=(double*)arg;
-
-	if( NULL!=val )
-	{
-		*val=(double)current/100.0;
-	}
-}
-
 carote::Target::Target(std::string _name)
 :
 	node_("~"),
 	name_(_name),
-	target_mask_it_(node_)
+	output_image_it_(node_),
+	position_filter_(NULL),
+	velocity_filter_(NULL)
 {
-	// input processing stuff: color/depth ranges and thresholds
-	std::vector<int> aux;
-
-	static const int color_low[]={1,0,0};
-	aux=std::vector<int>(color_low,color_low+sizeof(color_low)/sizeof(int));
-	aux=getParam< std::vector<int> >(node_,"color_range_low",aux);
-	color_low_=cv::Scalar(aux[0],aux[1],aux[2]);
-
-	static const int color_high[]={255,255,255};
-	aux=std::vector<int>(color_high,color_high+sizeof(color_high)/sizeof(int));
-	aux=getParam< std::vector<int> >(node_,"color_range_high",aux);
-	color_high_=cv::Scalar(aux[0],aux[1],aux[2]);
-
-	depth_low_=getParam<double>(node_,"depth_range_low",0);
-	depth_high_=getParam<double>(node_,"depth_range_high",255);
-
-	contours_threshold_=getParam<int>(node_,"contours_threshold",30);
-
-	// input processing stuff: calibrate color and depth ranges?
-	calibration_=getParam<int>(node_,"calibration",1);
-	if( calibration_ )
-	{
-		this->calibrationGUI();
-	}
-
-	// input processing stuff: dynamic reconfiguration of ranges and thresholds
-	dynamic_reconfigure::Server<carote::CalibrationConfig>::CallbackType f;
-	f=boost::bind(&carote::Target::calibrationDR,this,_1, _2);
+	// ros stuff: dynamic reconfiguration
+	dynamic_reconfigure::Server<carote::TargetConfig>::CallbackType f;
+	f=boost::bind(&carote::Target::reconfigure,this,_1, _2);
 	server_.setCallback(f);
-
-	// input processing stuff: morphology kernels for mask filtering
-	morphology_[0]=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(3,3),cv::Point(-1,-1));
-	morphology_[1]=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(7,7),cv::Point(-1,-1));
-
-	// output processing stuff: position and velocity filter
-	int position_filter_N=getParam<int>(node_,"position_filter_N",15);
-	position_filter_=new MeanFilter(position_filter_N);
-
-	int velocity_filter_N=getParam<int>(node_,"velocity_filter_N",6);
-	velocity_filter_=new HoloborodkoFilter(velocity_filter_N);
-
-	// input topics names
-	sensor_id_=getParam<std::string>(node_,"sensor","/camera");
-
-	cloud_id_=getParam<std::string>(node_,"point_cloud","/depth_registered/points");
-	cloud_id_=sensor_id_+cloud_id_;
-
-	// sensor's reference frame
-	sensor_frame_id_=getParam<std::string>(node_,"sensor_frame","camera_depth_optical_frame");
-
-	// output topics names
-	target_position_id_=getParam<std::string>(node_,"target_position","/position");
-	target_position_id_=_name+target_position_id_;
-
-	target_velocity_id_=getParam<std::string>(node_,"target_velocity","/velocity");
-	target_velocity_id_=_name+target_velocity_id_;
-
-	target_mask_id_=getParam<std::string>(node_,"target_mask","/mask");
-	target_mask_id_=_name+target_mask_id_;
-
-	// prepare for listening to input topic
-	cloud_sub_=node_.subscribe(cloud_id_,1,&carote::Target::callback,this);
-
-	// prepare for advertise to the output topic
-	target_position_pub_=node_.advertise<geometry_msgs::PointStamped>(target_position_id_,1);
-	target_velocity_pub_=node_.advertise<geometry_msgs::Vector3Stamped>(target_velocity_id_,1);
-	target_mask_pub_=target_mask_it_.advertise(target_mask_id_,1);
 }
 
 carote::Target::~Target(void)
 {
-	delete position_filter_;
-	delete velocity_filter_;
+	if( position_filter_ )
+	{
+		delete position_filter_;
+		position_filter_=NULL;
+	}
+
+	if( velocity_filter_ )
+	{
+		delete velocity_filter_;
+		velocity_filter_=NULL;
+	}
 }
 
-void carote::Target::calibrationDR(carote::CalibrationConfig &config, uint32_t level)
+void carote::Target::reconfigure(carote::TargetConfig &config, uint32_t level)
 {
-	calibration_=config.Calibration;
-	color_low_=cv::Scalar(config.H_low,config.S_low,config.V_low);
-	color_high_=cv::Scalar(config.H_high,config.S_high,config.V_high);
-	depth_low_=config.D_low;
-	depth_high_=config.D_high;
-	contours_threshold_=config.C_threshold;
-}
+	// update parameters
+	params_=config;
 
-void carote::Target::calibrationGUI(void)
-{
-	//create mask window
-	cv::namedWindow(name_,CV_WINDOW_AUTOSIZE);
- 
-	//create range trackbars for BGRD values (low and high)
-	cv::createTrackbar("b-low",name_,NULL,255,&colorOnChange,&color_low_[0]);
-	cv::setTrackbarPos("b-low",name_,(int)color_low_[0]);
-	cv::createTrackbar("b-high",name_,NULL,255,&colorOnChange,&color_high_[0]);
-	cv::setTrackbarPos("b-high",name_,(int)color_high_[0]);
-	cv::createTrackbar("g-low",name_,NULL,255,&colorOnChange,&color_low_[1]);
-	cv::setTrackbarPos("g-low",name_,(int)color_low_[1]);
-	cv::createTrackbar("g-high",name_,NULL,255,&colorOnChange,&color_high_[1]);
-	cv::setTrackbarPos("g-high",name_,(int)color_high_[1]);
-	cv::createTrackbar("r-low",name_,NULL,255,&colorOnChange,&color_low_[2]);
-	cv::setTrackbarPos("r-low",name_,(int)color_low_[2]);
-	cv::createTrackbar("r-high",name_,NULL,255,&colorOnChange,&color_high_[2]);
-	cv::setTrackbarPos("r-high",name_,(int)color_high_[2]);
-	cv::createTrackbar("d-low",name_,NULL,255,&depthOnChange,&depth_low_);
-	cv::setTrackbarPos("d-low",name_,(int)(100.0*depth_low_));
-	cv::createTrackbar("d-high",name_,NULL,255,&depthOnChange,&depth_high_);
-	cv::setTrackbarPos("d-high",name_,(int)(100.0*depth_high_));
-}
+	// input processing stuff: ranges for the HSV color space
+	color_low_=cv::Scalar(params_.H_low,params_.S_low,params_.V_low);
+	color_high_=cv::Scalar(params_.H_high,params_.S_high,params_.V_high);
 
+	// input processing stuff: morphology kernels for mask filtering
+	cv::Size ksize;
+	cv::Point anchor=cv::Point(-1,-1);
+	ksize=cv::Size(params_.morph_open,params_.morph_open);
+	morphology_[0]=cv::getStructuringElement(cv::MORPH_ELLIPSE,ksize,anchor);
+	ksize=cv::Size(params_.morph_close,params_.morph_close);
+	morphology_[1]=cv::getStructuringElement(cv::MORPH_ELLIPSE,ksize,anchor);
+
+	// output processing stuff: position and velocity filter
+	if( position_filter_ )
+	{
+		delete position_filter_;
+		position_filter_=NULL;
+	}
+	position_filter_=new MeanFilter(params_.position_order);
+
+	if( velocity_filter_ )
+	{
+		delete velocity_filter_;
+		velocity_filter_=NULL;
+	}
+	velocity_filter_=new HoloborodkoFilter(params_.velocity_order);
+
+	// input topics names
+	params_.input_cloud=params_.input_sensor+params_.input_cloud;
+
+	// output topics names
+	params_.output_position=name_+params_.output_position;
+	params_.output_velocity=name_+params_.output_velocity;
+	params_.output_image=name_+params_.output_image;
+
+	// prepare for listening to input topics
+	input_cloud_sub_=node_.subscribe(params_.input_cloud,1,&carote::Target::callback,this);
+
+	// prepare for advertise to the output topics
+	output_position_pub_=node_.advertise<geometry_msgs::PointStamped>(params_.output_position,1);
+	output_velocity_pub_=node_.advertise<geometry_msgs::Vector3Stamped>(params_.output_velocity,1);
+	output_image_pub_=output_image_it_.advertise(params_.output_image,1);
+}
 
 void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 {
@@ -149,7 +90,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
     pcl::fromROSMsg(*_input,cloud);
 
 	// generate color and depth images from the point cloud
-	cv::Mat color(cloud.height,cloud.width,CV_8UC3);
+	cv::Mat image(cloud.height,cloud.width,CV_8UC3);
 	cv::Mat depth(cloud.height,cloud.width,CV_8UC1);
 
     for( size_t i=0; cloud.width>i; i++)
@@ -159,24 +100,31 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 			pcl::PointXYZRGB *p=&cloud[cloud.width*j+i];
 
 			// generate color image
-			color.at<cv::Vec3b>(j,i)=cv::Vec3b(p->b,p->g,p->r);
+			image.at<cv::Vec3b>(j,i)=cv::Vec3b(p->b,p->g,p->r);
 
 			// generate depth mask image
 			float d=sqrtf(p->x*p->x+p->y*p->y+p->z*p->z);
-			depth.at<char>(j,i)=(isnan(d) || d<depth_low_ || d>depth_high_)?0:255;
+			depth.at<char>(j,i)=(isnan(d) || d<params_.depth_low || d>params_.depth_high)?0:255;
 		}
 	}
 
+	// keep a copy of the original image
+	cv::Mat original;
+	if( params_.calibrate )
+	{
+		image.copyTo(original);
+	}
+
 	// color image filtering and conversion to HSV color space
-	cv::GaussianBlur(color,color,cv::Size(5,5),0.5);
-	cvtColor(color,color,CV_BGR2HSV);
+	cv::GaussianBlur(image,image,cv::Size(5,5),0.5);
+	cvtColor(image,image,CV_BGR2HSV);
 
 	// color mask generation
-	cv::inRange(color,color_low_,color_high_,color);
+	cv::inRange(image,color_low_,color_high_,image);
 
 	// target mask generation
 	cv::Mat mask;
-	cv::bitwise_and(color,depth,mask);
+	cv::bitwise_and(image,depth,mask);
 
 	//reduce mask noise by some morphological transformations
 	cv::morphologyEx(mask,mask,cv::MORPH_OPEN,morphology_[0]);
@@ -197,14 +145,14 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 		for( size_t i=0; contours.size()>i; i++ )
 		{
 			// merge only contours with sufficient number of points
-			if( contours[i].size()>contours_threshold_ )
+			if( contours[i].size()>params_.contour_threshold )
 			{
 				outline.insert(outline.end(),contours[i].begin(),contours[i].end());
 			}
 		}
 
 		// if the outline contains enough number of points, then
-		if( outline.size()>contours_threshold_ )
+		if( outline.size()>params_.contour_threshold )
 		{
 			// compute the target's convex hull
 			std::vector< std::vector<cv::Point> > hull(1);
@@ -235,7 +183,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 						// target's position message
 						geometry_msgs::PointStamped position_msg;
 						position_msg.header.stamp=_input->header.stamp;
-						position_msg.header.frame_id=sensor_frame_id_;
+						position_msg.header.frame_id=params_.input_frame;
 						position_msg.point.x=position(0);
 						position_msg.point.y=position(1);
 						position_msg.point.z=position(2);
@@ -247,32 +195,31 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 						}
 						geometry_msgs::Vector3Stamped velocity_msg;
 						velocity_msg.header.stamp=_input->header.stamp;
-						velocity_msg.header.frame_id=sensor_frame_id_;
+						velocity_msg.header.frame_id=params_.input_frame;
 						velocity_msg.vector.x=velocity(0);
 						velocity_msg.vector.y=velocity(1);
 						velocity_msg.vector.z=velocity(2);
 
 						// publish target's messages
-						target_position_pub_.publish(position_msg);
-						target_velocity_pub_.publish(velocity_msg);
+						output_position_pub_.publish(position_msg);
+						output_velocity_pub_.publish(velocity_msg);
 					}
 					
-					if( calibration_ )
+					if( params_.calibrate )
 					{
-						// regenerate mask using the convex hull
-						mask=cv::Scalar(0);
-						int length=(int)hull[0].size();
-						const cv::Point* points[1]={&hull[0][0]};
-						cv::fillPoly(mask,points,&length,1,cv::Scalar(255,0,255),8);
+						cv::Scalar color=cv::Scalar(255,0,255);
+						
+						// show segmented target
+						cv::drawContours(original,hull,0,color,3);
 
 						// draw the target position
 						cv::Point p1=cv::Point(center.x-6,center.y-6);
 						cv::Point p2=cv::Point(center.x+6,center.y+6);
 						cv::Point p3=cv::Point(center.x-6,center.y+6);
 						cv::Point p4=cv::Point(center.x+6,center.y-6);
-						cv::line(mask,p1,p2,0,1);
-						cv::line(mask,p3,p4,0,1);
-						cv::rectangle(mask,p1,p2,0,1);
+						cv::line(original,p1,p2,color,1);
+						cv::line(original,p3,p4,color,1);
+						cv::rectangle(mask,p1,p2,color,1);
 					}
 				}
 			}
@@ -292,11 +239,9 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 	// compute target coordinates
 	
 	// publish target mask
-	if( calibration_ )
+	if( params_.calibrate )
 	{
-		sensor_msgs::ImagePtr mask_msg=cv_bridge::CvImage(std_msgs::Header(),"bgr8",mask).toImageMsg();
-		target_mask_pub_.publish(mask_msg);
-		cv::imshow(name_,mask);
-		cv::waitKey(1);
+		sensor_msgs::ImagePtr mask_msg=cv_bridge::CvImage(std_msgs::Header(),"bgr8",original).toImageMsg();
+		output_image_pub_.publish(mask_msg);
 	}
 }
