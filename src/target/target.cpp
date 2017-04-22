@@ -207,7 +207,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 					
 					if( params_.calibrate )
 					{
-						cv::Scalar color=cv::Scalar(255,0,255);
+						cv::Scalar color=cv::Scalar(0,255,0);
 						
 						// show segmented target
 						cv::drawContours(original,hull,0,color,3);
@@ -236,8 +236,6 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 		velocity_filter_->reset(_input->header.stamp);
 	}
 
-	// compute target coordinates
-	
 	// publish target mask
 	if( params_.calibrate )
 	{

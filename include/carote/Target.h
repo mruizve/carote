@@ -47,9 +47,6 @@ namespace carote
 			// output processing
 			MeanFilter *position_filter_;
 			HoloborodkoFilter *velocity_filter_;
-
-			// extra stuff: color and depth calibration flag
-			int calibration_;
 	};
 }
 
