@@ -1,9 +1,10 @@
 #ifndef _CAROTE_FOLLOWER_H_
 #define _CAROTE_FOLLOWER_H_
 
-#include<Eigen/Core>
 #include<dynamic_reconfigure/server.h>
 #include<nav_msgs/Odometry.h>
+#include<tf/tf.h>
+#include<tf/transform_listener.h>
 #include "carote/FollowerConfig.h"
 
 namespace carote
@@ -35,10 +36,15 @@ namespace carote
 			carote::FollowerConfig params_;
 			dynamic_reconfigure::Server<carote::FollowerConfig> server_;
 
+			// ros stuff: transforms
+			tf::StampedTransform tf_;
+			tf::TransformListener tf_listener_;
+
+
 			// output processing
-			Eigen::Vector3d p_; // target position
-			Eigen::Vector3d v_; // target velocity
-			Eigen::Vector3d u_; // control: [v_x, v_y, w]
+			tf::Vector3 p_; // target position
+			tf::Vector3 v_; // target velocity
+			tf::Vector3 u_; // control: [v_x, v_y, w]
 	};
 }
 

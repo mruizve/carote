@@ -1,4 +1,4 @@
-#include<Eigen/Dense>
+#include<Eigen/Core>
 #include<geometry_msgs/Twist.h>
 #include "carote/Follower.h"
 
@@ -74,35 +74,65 @@ void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t leve
 	timer_=node_.createTimer(ros::Rate(params_.rate),&carote::Follower::output,this);
 }
 
-void carote::Follower::input(const nav_msgs::Odometry& _input)
+void carote::Follower::input(const nav_msgs::Odometry& _msg)
 {
-	#define P _input.pose.pose.position
-	#define V _input.twist.twist.linear
+	#define P _msg.pose.pose.position
+	#define V _msg.twist.twist.linear
+	#define TS _msg.header.stamp
 	
 	// retrieve target state
-	p_(0)=P.x; p_(1)=P.y; p_(2)=P.z;
-	v_(0)=V.x; v_(1)=V.y; v_(2)=V.z;
+	p_[0]=P.x; p_[1]=P.y; p_[2]=P.z;
+	v_[0]=V.x; v_[1]=V.y; v_[2]=V.z;
 
-	// >>>------------------------------------------------------
-	// measurements should be expressed in term of the base link
-	// (we are assuming for now a static transformation between
-	// the xtion frame and the robot base, with zero translation.
-	// we will later use the /tf stuff)
-	// <<<------------------------------------------------------
-	Eigen::Vector3d t=Eigen::Vector3d::Zero();
-	Eigen::Matrix3d R;
-	R << 0,0,1, -1,0,0, 0,-1,0;
-
-	p_=R*p_+t;
-	v_=R*v_;
+	// change reference frame (from params_.input_frame to params_.output_frame)
+	if( tf_listener_.waitForTransform(params_.output_frame,params_.input_frame,TS,ros::Duration(0.1)) )
+	{
+		try
+		{
+			tf_listener_.lookupTransform(params_.output_frame,params_.input_frame,TS,tf_);
+		}
+		catch( tf::LookupException& ex )
+		{
+			ROS_INFO_STREAM("no transform available: " << ex.what());
+			this->stop();
+			return;
+		}
+		catch( tf::ConnectivityException& ex )
+		{
+			ROS_INFO_STREAM("connectivity error: " << ex.what());
+			this->stop();
+			return;
+		}
+		catch( tf::ExtrapolationException& ex )
+		{
+			ROS_INFO_STREAM("extrapolation error: " << ex.what());
+			this->stop();
+			return;
+		}
+	}
+	else
+	{
+		ROS_INFO_STREAM("transformation not available");
+		this->stop();
+		return;
+	}
 	
-	// get absolute target velocity
-	v_(0)+=v_(0)+u_(0)-u_(3)*p_(1);
-	v_(1)+=v_(1)+u_(1)+u_(3)*p_(0);
+	p_=tf_.getBasis()*p_+tf_.getOrigin();
+	v_=tf_.getBasis()*v_;
 
-	Eigen::Vector3d p,v;
+	// get absolute target velocity
+	v_[0]+=v_[0]+u_[0]-u_[2]*p_[1];
+	v_[1]+=v_[1]+u_[1]+u_[2]*p_[0];
+
+	Eigen::Map<Eigen::Vector3d> p(&p_[0]);
+	Eigen::Map<Eigen::Vector3d> v(&v_[0]);
+//	ROS_WARN_STREAM(p.transpose());
+	ROS_WARN_STREAM(v.transpose());
+
+
 	p << P.x,P.y,P.z;
 	v << V.x,V.y,V.z;
+
 
 	// some algebraic stuff
 	Eigen::Vector3d z=Eigen::Vector3d::UnitZ();
@@ -114,9 +144,9 @@ void carote::Follower::input(const nav_msgs::Odometry& _input)
 	// compute angular velocity command
 	//double w=-params_.Kp*(
 
-	ROS_WARN_STREAM("p: " << p.transpose());
-	ROS_WARN_STREAM("v: " << v.transpose());
-	ROS_WARN_STREAM("u: " << u);
+	// ROS_WARN_STREAM("p: " << p.transpose());
+	// ROS_WARN_STREAM("v: " << v.transpose());
+	// ROS_WARN_STREAM("u: " << u);
 
 	if( params_.enabled )
 	{
@@ -138,6 +168,7 @@ void carote::Follower::input(const nav_msgs::Odometry& _input)
 
 	#undef P
 	#undef V
+	#undef TS
 }
 
 void carote::Follower::output(const ros::TimerEvent& event)
