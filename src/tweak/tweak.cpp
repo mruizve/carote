@@ -78,7 +78,7 @@ int carote::Tweak::publisher(void)
 	// connect to server
 	struct sockaddr_in server;
 	server.sin_family=AF_INET;
-	server.sin_addr.s_addr=inet_addr("127.0.0.1");
+	server.sin_addr.s_addr=inet_addr(params_.host.c_str());
 	server.sin_port=htons(params_.port);
 	if( 0>connect(sd_,(struct sockaddr*)&server,sizeof(server)) )
 	{
