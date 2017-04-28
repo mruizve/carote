@@ -5,5 +5,5 @@
 	<node pkg="tf"
 		type="static_transform_publisher"
 		name="rgdb_broadcaster"
-		args="-0.075 0.025 0 0 0 -0.7071068 0.7071068 gripper_palm_link camera_depth_optical_frame 30"/>
+		args="-0.075 0.025 0 0 0 -0.7071068 0.7071068 gripper_palm_link camera_depth_optical_frame 40"/>
 </launch>
