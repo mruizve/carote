@@ -1,12 +1,10 @@
-#include<Eigen/Dense>
+#include<Eigen/Core>
 #include<cv_bridge/cv_bridge.h>
-#include<geometry_msgs/PointStamped.h>
-#include<geometry_msgs/Vector3Stamped.h>
+#include<nav_msgs/Odometry.h>
 #include<pcl_conversions/pcl_conversions.h>
-#include "carote/Params.h"
 #include "carote/Target.h"
 
-carote::Target::Target(std::string _name)
+carote::Target::Target(const std::string& _name)
 :
 	node_("~"),
 	name_(_name),
@@ -16,7 +14,7 @@ carote::Target::Target(std::string _name)
 {
 	// ros stuff: dynamic reconfiguration
 	dynamic_reconfigure::Server<carote::TargetConfig>::CallbackType f;
-	f=boost::bind(&carote::Target::reconfigure,this,_1, _2);
+	f=boost::bind(&carote::Target::reconfigure,this,_1,_2);
 	server_.setCallback(f);
 }
 
@@ -35,7 +33,7 @@ carote::Target::~Target(void)
 	}
 }
 
-void carote::Target::reconfigure(carote::TargetConfig &config, uint32_t level)
+void carote::Target::reconfigure(carote::TargetConfig& config, uint32_t level)
 {
 	// update parameters
 	params_=config;
@@ -52,7 +50,7 @@ void carote::Target::reconfigure(carote::TargetConfig &config, uint32_t level)
 	ksize=cv::Size(params_.morph_close,params_.morph_close);
 	morphology_[1]=cv::getStructuringElement(cv::MORPH_ELLIPSE,ksize,anchor);
 
-	// output processing stuff: position and velocity filter
+	// output processing stuff: position and velocity filters
 	if( position_filter_ )
 	{
 		delete position_filter_;
@@ -71,16 +69,14 @@ void carote::Target::reconfigure(carote::TargetConfig &config, uint32_t level)
 	params_.input_cloud=params_.input_sensor+params_.input_cloud;
 
 	// output topics names
-	params_.output_position=name_+params_.output_position;
-	params_.output_velocity=name_+params_.output_velocity;
+	params_.output_state=name_+params_.output_state;
 	params_.output_image=name_+params_.output_image;
 
 	// prepare for listening to input topics
 	input_cloud_sub_=node_.subscribe(params_.input_cloud,1,&carote::Target::callback,this);
 
 	// prepare for advertise to the output topics
-	output_position_pub_=node_.advertise<geometry_msgs::PointStamped>(params_.output_position,1);
-	output_velocity_pub_=node_.advertise<geometry_msgs::Vector3Stamped>(params_.output_velocity,1);
+	output_state_pub_=node_.advertise<nav_msgs::Odometry>(params_.output_state,1);
 	output_image_pub_=output_image_it_.advertise(params_.output_image,1);
 }
 
@@ -115,6 +111,10 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 		image.copyTo(original);
 	}
 
+	// reduce image size
+	cv::resize(image,image,cv::Size(0,0),params_.scale_factor,params_.scale_factor);
+	cv::resize(depth,depth,cv::Size(0,0),params_.scale_factor,params_.scale_factor);
+	
 	// color image filtering and conversion to HSV color space
 	cv::GaussianBlur(image,image,cv::Size(5,5),0.5);
 	cvtColor(image,image,CV_BGR2HSV);
@@ -126,7 +126,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 	cv::Mat mask;
 	cv::bitwise_and(image,depth,mask);
 
-	//reduce mask noise by some morphological transformations
+	// reduce mask noise by some morphological transformations
 	cv::morphologyEx(mask,mask,cv::MORPH_OPEN,morphology_[0]);
 	cv::morphologyEx(mask,mask,cv::MORPH_CLOSE,morphology_[1]);
 
@@ -154,7 +154,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 		// if the outline contains enough number of points, then
 		if( outline.size()>params_.contour_threshold )
 		{
-			// compute the target's convex hull
+			// compute the target convex hull
 			std::vector< std::vector<cv::Point> > hull(1);
 			cv::convexHull(cv::Mat(outline),hull[0]);
 
@@ -162,7 +162,8 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 			cv::Moments moments=cv::moments(hull[0]);
 
 			// compute centroid coordinates of the convex hull
-			cv::Point center=cv::Point(moments.m10/moments.m00,moments.m01/moments.m00);
+			double scale=1.0/(params_.scale_factor*moments.m00);
+			cv::Point center=cv::Point(moments.m10*scale,moments.m01*scale);
 
 			// validate target's position
 			pcl::PointXYZRGB *p=&cloud[cloud.width*center.y+center.x];
@@ -180,46 +181,40 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 
 					if( velocity_filter_->ok() )
 					{
-						// target's position message
-						geometry_msgs::PointStamped position_msg;
-						position_msg.header.stamp=_input->header.stamp;
-						position_msg.header.frame_id=params_.input_frame;
-						position_msg.point.x=position(0);
-						position_msg.point.y=position(1);
-						position_msg.point.z=position(2);
+						// output message: header
+						nav_msgs::Odometry state_msg;
+						state_msg.header.stamp=_input->header.stamp;
+						state_msg.header.frame_id=params_.input_frame;
 
-						// target's linear velocity message
-						if( 0.01>velocity.norm())
+						// output message: position
+						state_msg.pose.pose.position.x=position(0);
+						state_msg.pose.pose.position.y=position(1);
+						state_msg.pose.pose.position.z=position(2);
+
+						// output message: linear velocity
+						if( params_.speed_threshold>velocity.norm())
 						{
 							velocity=Eigen::Vector3d::Zero();
 						}
-						geometry_msgs::Vector3Stamped velocity_msg;
-						velocity_msg.header.stamp=_input->header.stamp;
-						velocity_msg.header.frame_id=params_.input_frame;
-						velocity_msg.vector.x=velocity(0);
-						velocity_msg.vector.y=velocity(1);
-						velocity_msg.vector.z=velocity(2);
+						state_msg.twist.twist.linear.x=velocity(0);
+						state_msg.twist.twist.linear.y=velocity(1);
+						state_msg.twist.twist.linear.z=velocity(2);
 
-						// publish target's messages
-						output_position_pub_.publish(position_msg);
-						output_velocity_pub_.publish(velocity_msg);
+						// publish output message
+						output_state_pub_.publish(state_msg);
 					}
 					
 					if( params_.calibrate )
 					{
-						cv::Scalar color=cv::Scalar(0,255,0);
-						
-						// show segmented target
-						cv::drawContours(original,hull,0,color,3);
-
 						// draw the target position
-						cv::Point p1=cv::Point(center.x-6,center.y-6);
-						cv::Point p2=cv::Point(center.x+6,center.y+6);
-						cv::Point p3=cv::Point(center.x-6,center.y+6);
-						cv::Point p4=cv::Point(center.x+6,center.y-6);
-						cv::line(original,p1,p2,color,1);
-						cv::line(original,p3,p4,color,1);
-						cv::rectangle(mask,p1,p2,color,1);
+						cv::Scalar color=cv::Scalar(0,255,0);
+						cv::Point p1=cv::Point(center.x-10,center.y-10);
+						cv::Point p2=cv::Point(center.x+10,center.y+10);
+						cv::Point p3=cv::Point(center.x-10,center.y+10);
+						cv::Point p4=cv::Point(center.x+10,center.y-10);
+						cv::line(original,p1,p2,color,3);
+						cv::line(original,p3,p4,color,3);
+						cv::rectangle(original,p1,p2,color,3);
 					}
 				}
 			}

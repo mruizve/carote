@@ -15,11 +15,11 @@ namespace carote
 	class Target
 	{
 		public:
-			Target(std::string _name);
+			Target(const std::string& _name);
 			~Target(void);
 
-			void reconfigure(carote::TargetConfig &config, uint32_t level);
 			void callback(const sensor_msgs::PointCloud2::ConstPtr _msg);
+			void reconfigure(carote::TargetConfig& config, uint32_t level);
 
 		private:
 			// ros stuff: node handle
@@ -30,18 +30,17 @@ namespace carote
 			ros::Subscriber input_cloud_sub_;
 
 			// ros stuff: output topic and frames
-			ros::Publisher output_position_pub_;
-			ros::Publisher output_velocity_pub_;
+			ros::Publisher output_state_pub_;
 			image_transport::ImageTransport output_image_it_;
 			image_transport::Publisher output_image_pub_;
 
 			// ros stuff: node parameters
-			carote::TargetConfig params_;
 			cv::Mat morphology_[2];
 			cv::Scalar color_low_;
 			cv::Scalar color_high_;
 
-			// input processing + ros stuff
+			// ros stuff: parameters handling through dynamic reconfigure 
+			carote::TargetConfig params_;
 			dynamic_reconfigure::Server<carote::TargetConfig> server_;
 
 			// output processing

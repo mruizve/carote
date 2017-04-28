@@ -1,5 +1,5 @@
 #include<ros/ros.h>
-#include "carote/Target.h"
+#include "carote/Tweak.h"
 
 int main(int argc, char **argv)
 {
@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 	ros::init(argc,argv,ros::this_node::getName());
 
 	// initialize target object
-	carote::Target target(ros::this_node::getName());
+	carote::Tweak tweak(ros::this_node::getName());
 
 	// handle events
 	ros::spin();

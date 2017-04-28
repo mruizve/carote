@@ -21,11 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
-# add dynamic reconfigure api
-generate_dynamic_reconfigure_options(
-  cfg/Target.cfg
-)
-
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package( OpenCV REQUIRED )
@@ -62,9 +57,8 @@ find_package( OpenCV REQUIRED )
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+#  Message.msg
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -101,10 +95,11 @@ find_package( OpenCV REQUIRED )
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/Follower.cfg
+  cfg/Target.cfg
+  cfg/Tweak.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -118,7 +113,7 @@ find_package( OpenCV REQUIRED )
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES carote
-#  CATKIN_DEPENDS depth_image_proc image_proc openni2_camera rgdb_launch roscpp rospy std_msgs tf
+#  CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
@@ -213,8 +208,8 @@ include_directories(
 
 # project directories structure
 include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/include" )
-set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin" )
-set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
-set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
+#set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin" )
+#set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
+#set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
 
 subdirs( src )
