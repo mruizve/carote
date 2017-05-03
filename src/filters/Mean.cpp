@@ -32,7 +32,7 @@ void carote::MeanFilter::reset(void)
 double carote::MeanFilter::rule(boost::circular_buffer<double> _s)
 {
 	double res=0.0;
-	static double b=1.0/filter_order_;
+	double b=1.0/filter_order_;
 
 	for( size_t i=0; filter_order_>i; i++ )
 	{
