@@ -88,6 +88,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 	// generate color and depth images from the point cloud
 	cv::Mat image(cloud.height,cloud.width,CV_8UC3);
 	cv::Mat depth(cloud.height,cloud.width,CV_8UC1);
+	cv::Mat coord(cloud.height,cloud.width,CV_32FC3);
 
     for( size_t i=0; cloud.width>i; i++)
     {
@@ -98,9 +99,18 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 			// generate color image
 			image.at<cv::Vec3b>(j,i)=cv::Vec3b(p->b,p->g,p->r);
 
-			// generate depth mask image
+			// generate depth mask and 3d coordinates images
 			float d=sqrtf(p->x*p->x+p->y*p->y+p->z*p->z);
-			depth.at<char>(j,i)=(isnan(d) || d<params_.depth_low || d>params_.depth_high)?0:255;
+			if( isnan(d) || d<params_.depth_low || d>params_.depth_high )
+			{
+				depth.at<char>(j,i)=0;
+				coord.at<cv::Vec3f>(j,i)=cv::Vec3f(0.0f,0.0f,0.0f);
+			}
+			else
+			{
+				depth.at<char>(j,i)=255;
+				coord.at<cv::Vec3f>(j,i)=cv::Vec3f(p->x,p->y,p->z);
+			}
 		}
 	}
 
@@ -114,6 +124,7 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 	// reduce image size
 	cv::resize(image,image,cv::Size(0,0),params_.scale_factor,params_.scale_factor);
 	cv::resize(depth,depth,cv::Size(0,0),params_.scale_factor,params_.scale_factor);
+	cv::resize(coord,coord,cv::Size(0,0),params_.scale_factor,params_.scale_factor);
 	
 	// color image filtering and conversion to HSV color space
 	cv::GaussianBlur(image,image,cv::Size(5,5),0.5);
@@ -158,20 +169,37 @@ void carote::Target::callback(const sensor_msgs::PointCloud2::ConstPtr _input)
 			std::vector< std::vector<cv::Point> > hull(1);
 			cv::convexHull(cv::Mat(outline),hull[0]);
 
-			// compute moments of the convex hull
-			cv::Moments moments=cv::moments(hull[0]);
+			mask=cv::Scalar(0);
+			int length=(int)hull[0].size();
+			const cv::Point* points[1]={&hull[0][0]};
+			cv::fillPoly(mask,points,&length,1,cv::Scalar(255,0,255),8);
 
-			// compute centroid coordinates of the convex hull
-			double scale=1.0/(params_.scale_factor*moments.m00);
-			cv::Point center=cv::Point(moments.m10*scale,moments.m01*scale);
+			// compute target position as the centroid of the detected shape
+			double npos=0.0;
+			cv::Point center=cv::Point(0,0);
+			Eigen::Vector3d position=Eigen::Vector3d::Zero();
+			for( size_t i=0; mask.cols>i; i++)
+			{
+				for( size_t j=0; mask.rows>j; j++)
+				{
+					if( mask.at<char>(j,i) && 0.0f<coord.at<cv::Vec3f>(j,i)[2] )
+					{
+						center+=cv::Point(i,j);
+						position(0)+=coord.at<cv::Vec3f>(j,i)[0];
+						position(1)+=coord.at<cv::Vec3f>(j,i)[1];
+						position(2)+=coord.at<cv::Vec3f>(j,i)[2];
+						npos+=1.0f;
+					}
+				}
+			}
+			center.x=center.x/(params_.scale_factor*npos);
+			center.y=center.y/(params_.scale_factor*npos);
+			position/=npos;
 
 			// validate target's position
-			pcl::PointXYZRGB *p=&cloud[cloud.width*center.y+center.x];
-			if( !isnan(p->x+p->y+p->z) )
+			if( !isnan(position.norm()) )
 			{
 				// filter target's position
-				Eigen::Vector3d position;
-				position << p->x,p->y,p->z;
 				position=position_filter_->apply(position);
 
 				if( position_filter_->ok() )
