@@ -1,6 +1,8 @@
 #ifndef _CAROTE_FOLLOWER_H_
 #define _CAROTE_FOLLOWER_H_
 
+#include<deque>
+#include<Eigen/Core>
 #include<dynamic_reconfigure/server.h>
 #include<nav_msgs/Odometry.h>
 #include<tf/tf.h>
@@ -40,11 +42,10 @@ namespace carote
 			tf::StampedTransform tf_;
 			tf::TransformListener tf_listener_;
 
-
 			// output processing
 			tf::Vector3 p_; // target position
 			tf::Vector3 v_; // target velocity
-			tf::Vector3 u_; // control: [v_x, v_y, w]
+			std::deque<Eigen::Vector3d> u_; // control: [v_x, v_y, w]
 	};
 }
 

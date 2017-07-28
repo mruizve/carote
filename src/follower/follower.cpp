@@ -1,4 +1,3 @@
-#include<Eigen/Core>
 #include<geometry_msgs/Twist.h>
 #include "carote/Follower.h"
 
@@ -49,10 +48,7 @@ void carote::Follower::stop(void)
 
 void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t level)
 {
-	// disable controller
-	timer_.stop();
-	
-	// stop the robot
+	// stop the robot (old topic)
 	this->stop();
 
 	// update parameters
@@ -67,7 +63,7 @@ void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t leve
 	// prepare for advertise to the output topics
 	output_control_pub_=node_.advertise<geometry_msgs::Twist>(params_.output_control,1);
 
-	// stop the robot
+	// stop the robot (new topic)
 	this->stop();
 
 	// enable controller
@@ -76,83 +72,95 @@ void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t leve
 
 void carote::Follower::input(const nav_msgs::Odometry& _msg)
 {
-	#define P _msg.pose.pose.position
-	#define V _msg.twist.twist.linear
-	#define TS _msg.header.stamp
-	
-	// retrieve target state
-	p_[0]=P.x; p_[1]=P.y; p_[2]=P.z;
-	v_[0]=V.x; v_[1]=V.y; v_[2]=V.z;
-
-	// change reference frame (from params_.input_frame to params_.output_frame)
-	if( tf_listener_.waitForTransform(params_.output_frame,params_.input_frame,TS,ros::Duration(0.1)) )
+	// get frames transform (from params_.input_frame to params_.output_frame)
+	#define iframe_ params_.input_frame
+	#define oframe_ params_.output_frame
+	#define _tstamp _msg.header.stamp
+	if( tf_listener_.waitForTransform(oframe_,iframe_,_tstamp,ros::Duration(0.1)) )
 	{
 		try
 		{
-			tf_listener_.lookupTransform(params_.output_frame,params_.input_frame,TS,tf_);
+			tf_listener_.lookupTransform(oframe_,iframe_,_tstamp,tf_);
 		}
 		catch( tf::LookupException& ex )
 		{
 			ROS_INFO_STREAM("no transform available: " << ex.what());
-			this->stop();
 			return;
 		}
 		catch( tf::ConnectivityException& ex )
 		{
 			ROS_INFO_STREAM("connectivity error: " << ex.what());
-			this->stop();
 			return;
 		}
 		catch( tf::ExtrapolationException& ex )
 		{
 			ROS_INFO_STREAM("extrapolation error: " << ex.what());
-			this->stop();
 			return;
 		}
 	}
 	else
 	{
 		ROS_INFO_STREAM("transformation not available");
-		this->stop();
 		return;
 	}
-	
+	#undef iframe_
+	#undef oframe_
+	#undef _tstamp
+
+	// get next control command (platform velocity)
+	Eigen::Vector3d u;
+	if( !u_.empty() )
+	{
+		u=u_.front();
+		u_.clear();
+	}
+	else
+	{
+		u=Eigen::Vector3d::Zero();
+	}
+
+	// retrieve target state (using Eigen representation)
+	Eigen::Map<Eigen::Vector3d> p(&p_[0]);
+	p(0)=_msg.pose.pose.position.x;
+	p(1)=_msg.pose.pose.position.y;
+	p(2)=_msg.pose.pose.position.z;
+
+	Eigen::Map<Eigen::Vector3d> v(&v_[0]);
+	v(0)=_msg.twist.twist.linear.x;
+	v(1)=_msg.twist.twist.linear.y;
+	v(2)=_msg.twist.twist.linear.z;
+
+	// compute distance target distance to the sensor frame
+	double d=p.norm();
+
+	// get state respect params_.output_frame
 	p_=tf_.getBasis()*p_+tf_.getOrigin();
 	v_=tf_.getBasis()*v_;
+	v(0)=v(0)+u(0)-u(2)*p(1);
+	v(1)=v(1)+u(1)+u(2)*p(0);
 
-	// get absolute target velocity
-	v_[0]+=v_[0]+u_[0]-u_[2]*p_[1];
-	v_[1]+=v_[1]+u_[1]+u_[2]*p_[0];
-
-	Eigen::Map<Eigen::Vector3d> p(&p_[0]);
-	Eigen::Map<Eigen::Vector3d> v(&v_[0]);
-//	ROS_WARN_STREAM(p.transpose());
-	ROS_WARN_STREAM(v.transpose());
-
-
-	p << P.x,P.y,P.z;
-	v << V.x,V.y,V.z;
-
+	ROS_WARN_STREAM(p.transpose());
 
 	// some algebraic stuff
-	Eigen::Vector3d z=Eigen::Vector3d::UnitZ();
+	Eigen::Vector3d x=Eigen::Vector3d::UnitX();
 
 	// compute linear velocity command
-	double u=-params_.Kp*(params_.distance-p.norm())-params_.Kv*v.dot(z);
-	u=sgn(u)*std::min(0.1,fabs(u));
+	ROS_WARN_STREAM(d << " -- " << (params_.distance-d));
+	u(0)=-params_.Kp*sgn(params_.distance-d)*pow(params_.distance-d,2)-params_.Kv*v.dot(x);
+	u(0)=sgn(u(0))*std::min(params_.speed_max,fabs(u(0)));
 	
 	// compute angular velocity command
 	//double w=-params_.Kp*(
 
 	// ROS_WARN_STREAM("p: " << p.transpose());
 	// ROS_WARN_STREAM("v: " << v.transpose());
-	// ROS_WARN_STREAM("u: " << u);
+	ROS_WARN_STREAM("u: " << u(0));
 
 	if( params_.enabled )
 	{
 		// send velocity command
 		geometry_msgs::Twist control_msg;
-		control_msg.linear.x=u;
+		control_msg.linear.x=u(0);
 		control_msg.linear.y=0.0;
 		control_msg.linear.z=0.0;
 		control_msg.angular.x=0.0;
@@ -165,10 +173,6 @@ void carote::Follower::input(const nav_msgs::Odometry& _msg)
 		// stop the robot
 		this->stop();
 	}
-
-	#undef P
-	#undef V
-	#undef TS
 }
 
 void carote::Follower::output(const ros::TimerEvent& event)
