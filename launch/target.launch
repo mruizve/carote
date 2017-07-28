@@ -7,12 +7,36 @@
 		<arg name="camera" default="$(arg camera)" />
 	</include>
 
-	<group ns="carote">
-		<!-- see corresponding .cfg files for a complete list of parameters and default values -->
-		<node name="target" pkg="carote" type="target" respawn="true" output="screen"/>
-		<node name="tweak_source" pkg="carote" type="tweak" respawn="true" output="screen"/>
+	<node pkg="apriltags_ros" type="apriltag_detector_node" name="apriltag_detector" output="screen">
+		<!-- remap topic required by the node to custom topics -->
+		<remap from="image_rect" to="/$(arg camera)/rgb/image_rect_color" />
+		<remap from="camera_info" to="/$(arg camera)/rgb/camera_info" />
 
-		<node name="carote_parameters" pkg="rqt_reconfigure" type="rqt_reconfigure" respawn="false" output="screen"/>
-		<node name="carote_viewer" pkg="rqt_image_view" type="rqt_image_view" respawn="false" output="screen" />
-	</group>
+		<!-- optional: Subscribe to the compressed stream-->
+		<!-- <param name="image_transport" type="str" value="compressed" /> -->
+
+		<!-- select the tag family: 16h5, 25h7, 25h9, 36h9, or 36h11(default) -->
+		<param name="tag_family" type="str" value="36h11" />
+
+		<!-- enable projected optical measurements for more accurate tag transformations -->
+		<!-- This exists for backwards compatability and should be left true for new setups -->
+		<param name="projected_optics" type="bool" value="true" />
+
+		<!-- describe the tags -->
+		<rosparam param="tag_descriptions">[{id: 0, size: 0.163513}]</rosparam>
+
+		<!-- remap custom output topics -->
+		<remap from="/tag_detections" to="/carote/target/detection" />
+		<remap from="/tag_detections_image" to="/carote/target/image" />
+		<remap from="/tag_detections_pose" to="/carote/target/pose" />
+	</node>
+
+<!--
+	<node name="carote_viewer" pkg="rqt_image_view" type="rqt_image_view" respawn="false" output="screen" />
+-->
+
+	<node pkg="tf" 
+		type="static_transform_publisher"
+		name="rgdb_broadcaster"
+		args="-0.075 0 0   0.7071068 0 0.7071068 0 gripper_palm_link camera_link 100"/>
 </launch>
