@@ -1,5 +1,5 @@
-#ifndef _CAROTE_FOLLOWER_H_
-#define _CAROTE_FOLLOWER_H_
+#ifndef _CAROTE_CONTROLLER_H_
+#define _CAROTE_CONTROLLER_H_
 
 #include<deque>
 #include<Eigen/Core>
@@ -7,48 +7,15 @@
 #include<geometry_msgs/PoseArray.h>
 #include<tf/tf.h>
 #include<tf/transform_listener.h>
-#include "carote/FollowerConfig.h"
-
-#include<kdl_parser/kdl_parser.hpp>
+#include "carote/ControllerConfig.h"
 
 namespace carote
 {
 	class Controller
 	{
-		public:
-			Controller(const std::string& _name);
-			~Controller(void);
-
-		protected:
-			// ros stuff: node handle
-			std::string name_;
-			ros::NodeHandle node_;
-
 	};
 	
-	class Observer: public Controller
-	{
-		public:
-			Observer(const std::string& _name);
-			~Observer(void);
-
-			void input(const geometry_msgs::PoseArray& _msg);
-	};
-
-	class Actuator: public Controller
-	{
-		public:
-			Actuator(const std::string& _name);
-			~Actuator(void);
-
-			void stop(void);
-			void input(const geometry_msgs::PoseArray& _msg);
-			void output(const ros::TimerEvent& event);
-			void reconfigure(carote::FollowerConfig &config, uint32_t level);
-	};
-
-	
-	class Follower
+	class Follower: public Controller
 	{
 		public:
 			Follower(const std::string& _name);
@@ -57,14 +24,14 @@ namespace carote
 			void stop(void);
 			void input(const geometry_msgs::PoseArray& _msg);
 			void output(const ros::TimerEvent& event);
-			void reconfigure(carote::FollowerConfig &config, uint32_t level);
+			void reconfigure(carote::ControllerConfig &config, uint32_t level);
 
-		private:
+		protected:
 			// ros stuff: node handle
 			std::string name_;
 			ros::NodeHandle node_;
 
-			// ros stuff: input data
+			// ros stuff: topic subscribers
 			ros::Subscriber operator_sub_;
 			ros::Subscriber target_sub_;
 
@@ -77,8 +44,8 @@ namespace carote
 			std::string frame_reference_;
 
 			// ros stuff: parameters handling through dynamic reconfigure 
-			carote::FollowerConfig params_;
-			dynamic_reconfigure::Server<carote::FollowerConfig> server_;
+			carote::ControllerConfig params_;
+			dynamic_reconfigure::Server<carote::ControllerConfig> server_;
 
 			// ros stuff: transforms
 			tf::StampedTransform tf_;

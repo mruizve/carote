@@ -29,7 +29,7 @@ carote::Follower::Follower(const std::string& _name)
 	node_.param<std::string>("follower_frame_reference",frame_reference_,"base_link");
 
 	// ros stuff: dynamic reconfiguration
-	dynamic_reconfigure::Server<carote::FollowerConfig>::CallbackType f;
+	dynamic_reconfigure::Server<carote::ControllerConfig>::CallbackType f;
 	f=boost::bind(&carote::Follower::reconfigure,this,_1,_2);
 	server_.setCallback(f);
 }
@@ -66,7 +66,7 @@ void carote::Follower::stop(void)
 	// TODO
 }
 
-void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t level)
+void carote::Follower::reconfigure(carote::ControllerConfig& config, uint32_t level)
 {
 	// stop the robot (old topic)
 	this->stop();
