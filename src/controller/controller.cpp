@@ -1,5 +1,5 @@
 #include<geometry_msgs/Twist.h>
-#include "carote/Follower.h"
+#include "carote/Controller.h"
 
 template<typename T> int sgn(T val)
 {
@@ -11,6 +11,23 @@ carote::Follower::Follower(const std::string& _name)
 	node_("~"),
 	name_(_name)
 {
+	std::string strpar;
+
+	// ros stuff: prepare for listening to input topics
+	node_.param<std::string>("follower_topic_operator",strpar,"/carote/operator/command");
+	operator_sub_=node_.subscribe(strpar,1,&carote::Follower::input,this);
+
+	node_.param<std::string>("follower_topic_target",strpar,"/carote/target/pose");
+	target_sub_=node_.subscribe(strpar,1,&carote::Follower::input,this);
+
+	// ros stuff: prepare for advertise to the output topics
+	node_.param<std::string>("follower_topic_control",strpar,"/cmd_vel");
+	control_pub_=node_.advertise<geometry_msgs::Twist>(strpar,1);
+
+	// ros stuff: load frames names
+	node_.param<std::string>("follower_frame_target",frame_target_,"target");
+	node_.param<std::string>("follower_frame_reference",frame_reference_,"base_link");
+
 	// ros stuff: dynamic reconfiguration
 	dynamic_reconfigure::Server<carote::FollowerConfig>::CallbackType f;
 	f=boost::bind(&carote::Follower::reconfigure,this,_1,_2);
@@ -20,7 +37,7 @@ carote::Follower::Follower(const std::string& _name)
 carote::Follower::~Follower(void)
 {
 	// if some one is listening, then
-	if( 0<output_control_pub_.getNumSubscribers() )
+	if( 0<control_pub_.getNumSubscribers() )
 	{
 		// stop the robot
 		this->stop();
@@ -40,10 +57,13 @@ void carote::Follower::stop(void)
 	control_msg.angular.x=0.0;
 	control_msg.angular.y=0.0;
 	control_msg.angular.z=0.0;
-	if( 0<output_control_pub_.getNumSubscribers() )
+	if( 0<control_pub_.getNumSubscribers() )
 	{
-		output_control_pub_.publish(control_msg);
+		control_pub_.publish(control_msg);
 	}
+
+	// empty queue
+	// TODO
 }
 
 void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t level)
@@ -54,33 +74,19 @@ void carote::Follower::reconfigure(carote::FollowerConfig& config, uint32_t leve
 	// update parameters
 	params_=config;
 
-	// input topics names
-	params_.input_state=params_.input_target+params_.input_state;
-
-	// prepare for listening to input topics
-	input_state_sub_=node_.subscribe(params_.input_state,1,&carote::Follower::input,this);
-
-	// prepare for advertise to the output topics
-	output_control_pub_=node_.advertise<geometry_msgs::Twist>(params_.output_control,1);
-
-	// stop the robot (new topic)
-	this->stop();
-
 	// enable controller
 	timer_=node_.createTimer(ros::Rate(params_.rate),&carote::Follower::output,this);
 }
 
-void carote::Follower::input(const nav_msgs::Odometry& _msg)
+void carote::Follower::input(const geometry_msgs::PoseArray& _msg)
 {
-	// get frames transform (from params_.input_frame to params_.output_frame)
-	#define iframe_ params_.input_frame
-	#define oframe_ params_.output_frame
+	// get frames transform (from target to reference)
 	#define _tstamp _msg.header.stamp
-	if( tf_listener_.waitForTransform(oframe_,iframe_,_tstamp,ros::Duration(0.1)) )
+	if( tf_listener_.waitForTransform(frame_reference_,frame_target_,_tstamp,ros::Duration(0.1)) )
 	{
 		try
 		{
-			tf_listener_.lookupTransform(oframe_,iframe_,_tstamp,tf_);
+			tf_listener_.lookupTransform(frame_reference_,frame_target_,_tstamp,tf_);
 		}
 		catch( tf::LookupException& ex )
 		{
@@ -103,8 +109,6 @@ void carote::Follower::input(const nav_msgs::Odometry& _msg)
 		ROS_INFO_STREAM("transformation not available");
 		return;
 	}
-	#undef iframe_
-	#undef oframe_
 	#undef _tstamp
 
 	// get next control command (platform velocity)
@@ -121,14 +125,14 @@ void carote::Follower::input(const nav_msgs::Odometry& _msg)
 
 	// retrieve target state (using Eigen representation)
 	Eigen::Map<Eigen::Vector3d> p(&p_[0]);
-	p(0)=_msg.pose.pose.position.x;
-	p(1)=_msg.pose.pose.position.y;
-	p(2)=_msg.pose.pose.position.z;
+	p(0)=_msg.poses[0].position.x;
+	p(1)=_msg.poses[0].position.y;
+	p(2)=_msg.poses[0].position.z;
 
 	Eigen::Map<Eigen::Vector3d> v(&v_[0]);
-	v(0)=_msg.twist.twist.linear.x;
-	v(1)=_msg.twist.twist.linear.y;
-	v(2)=_msg.twist.twist.linear.z;
+	v(0)=0.0; //_msg.twist.twist.linear.x;
+	v(1)=0.0; //_msg.twist.twist.linear.y;
+	v(2)=0.0; //_msg.twist.twist.linear.z;
 
 	// compute distance target distance to the sensor frame
 	double d=p.norm();
@@ -166,7 +170,7 @@ void carote::Follower::input(const nav_msgs::Odometry& _msg)
 		control_msg.angular.x=0.0;
 		control_msg.angular.y=0.0;
 		control_msg.angular.z=0.0;
-		output_control_pub_.publish(control_msg);
+		control_pub_.publish(control_msg);
 	}
 	else
 	{
