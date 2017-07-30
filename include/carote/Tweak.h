@@ -100,7 +100,4 @@ namespace carote
 */
 }
 
-#undef CAROTE_TWEAK_RD
-#undef CAROTE_TWEAK_WR
-
 #endif
