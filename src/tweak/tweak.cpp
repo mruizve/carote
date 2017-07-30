@@ -1,8 +1,41 @@
-#include<arpa/inet.h>
-#include<sys/socket.h>
-#include<boost/date_time/posix_time/posix_time.hpp>
+//#include<arpa/inet.h>
+//#include<sys/socket.h>
+//#include<boost/date_time/posix_time/posix_time.hpp>
 #include "carote/Tweak.h"
 
+carote::Tweak::Tweak(const std::string& _name):
+	node_("~"),
+	name_(_name)
+{
+	// ros stuff: load parameters
+	if( !node_.getParam("/carote/topics/tweak",topic_name_) )
+	{
+		// show error and close node
+		ROS_ERROR_STREAM("missing parameter /carote/topics/tweak, include setup.launch in your launch file");
+		exit(EXIT_FAILURE);
+	}
+
+	// get static transform between gripper and sensor
+	if( !node_.getParam("/carote/frames/gripper",frame_gripper_) )
+	{
+		// show error and close node
+		ROS_ERROR_STREAM("missing parameter /carote/frames/gripper, include setup.launch in your launch file");
+		exit(EXIT_FAILURE);
+	}
+
+	if( !node_.getParam("/carote/frames/target",frame_target_) )
+	{
+		// show error and close node
+		ROS_ERROR_STREAM("missing parameter /carote/frames/target, include setup.launch in your launch file");
+		exit(EXIT_FAILURE);
+	}
+}
+
+carote::Tweak::~Tweak(void)
+{
+}
+
+/*
 carote::Tweak::Tweak(const std::string& _name):
 	fd_(-1),
 	sd_(-1),
@@ -209,4 +242,4 @@ void carote::Tweak::shutdown(void)
 	input_state_sub_.shutdown();
 	output_state_pub_.shutdown();
 }
-
+*/

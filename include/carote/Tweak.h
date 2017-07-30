@@ -2,12 +2,69 @@
 #define _CAROTE_TWEAK_H_
 
 #include<ros/ros.h>
-#include<dynamic_reconfigure/server.h>
-#include<nav_msgs/Odometry.h>
-#include "carote/TweakConfig.h"
+#include<geometry_msgs/PoseArray.h>
+#include<tf/tf.h>
+#include<tf/transform_listener.h>
+#include<tf/transform_broadcaster.h>
+//#include "carote/TweakConfig.h"
 
 namespace carote
 {
+	class Tweak
+	{
+		public:
+			Tweak(const std::string& _name);
+			~Tweak(void);
+		
+		protected:
+			// ros stuff: node handle
+			std::string name_;
+			ros::NodeHandle node_;
+
+			// ros stuff: tweak topic name
+			std::string topic_name_;
+
+			// ros stuff: transform between gripper and target frames
+			std::string frame_gripper_;
+			std::string frame_target_;
+			tf::StampedTransform tf_gripper_target_;
+	};
+	
+	class TweakListener: public Tweak
+	{
+		public:
+			TweakListener(const std::string& _name, int _fd);
+			~TweakListener(void);
+
+			void input(const geometry_msgs::PoseArray& _msg);
+
+		protected:
+			// ros stuff: topic subscriber
+			ros::Subscriber sub_target_;
+
+			// ros stuff: transform between gripper and target frames
+			tf::TransformListener tf_listener_;
+
+			// multi-master stuff: pipe descriptor
+			int pipe_wr_fd_;
+	};
+
+	class TweakPublisher: public Tweak
+	{
+		public:
+			TweakPublisher(const std::string& _name, int _fd);
+			~TweakPublisher(void);
+
+			void input(const geometry_msgs::PoseArray& _msg);
+
+		protected:
+			// ros stuff: topic publisher
+			ros::Publisher pub_target_;
+
+			// multi-master stuff: pipe descriptor
+			int pipe_rd_fd_;
+	};
+/*
 	class Tweak
 	{
 		public:
@@ -40,6 +97,7 @@ namespace carote
 			int sd_;
 			ros::Timer timer_;
 	};
+*/
 }
 
 #undef CAROTE_TWEAK_RD
