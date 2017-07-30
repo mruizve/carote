@@ -4,7 +4,7 @@
 
 	<group ns="carote">
 		<!-- controller node -->
-		<node name="controller" pkg="carote" type="follower" respawn="true" output="screen" />
+		<node name="controller" pkg="carote" type="controller" respawn="true" output="screen" />
 <!--
 		<node name="carote_parameters" pkg="rqt_reconfigure" type="rqt_reconfigure" respawn="false" output="screen"/>
 -->
