@@ -3,5 +3,5 @@
 # prepare ros environment
 source $(dirname $0)/setup-environment.sh
 
-# start the ros master
-roscore
+# start camera and target detection
+roslaunch carote controller.launch

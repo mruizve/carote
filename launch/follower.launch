@@ -1,9 +1,0 @@
-<launch>
-	<group ns="carote">
-		<!-- see corresponding .cfg files for a complete list of parameters and default values -->
-		<node name="follower" pkg="carote" type="follower" respawn="true" output="screen"/>
-		<node name="tweak_sink" pkg="carote" type="tweak" respawn="true" output="screen"/>
-
-		<node name="carote_parameters" pkg="rqt_reconfigure" type="rqt_reconfigure" respawn="false" output="screen"/>
-	</group>
-</launch>

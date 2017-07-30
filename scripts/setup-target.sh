@@ -3,5 +3,5 @@
 # prepare ros environment
 source $(dirname $0)/setup-environment.sh
 
-# launch drivers
-roslaunch carote youbot.launch
+# start camera and target detection
+roslaunch carote target.launch

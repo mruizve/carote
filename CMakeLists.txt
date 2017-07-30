@@ -96,9 +96,7 @@ find_package( OpenCV REQUIRED )
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-  cfg/Follower.cfg
-  cfg/Target.cfg
-  cfg/Tweak.cfg
+  cfg/Controller.cfg
 )
 
 ###################################
@@ -110,12 +108,12 @@ generate_dynamic_reconfigure_options(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
+#catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES carote
 #  CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
-)
+#)
 
 ###########
 ## Build ##

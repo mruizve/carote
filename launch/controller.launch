@@ -1,0 +1,12 @@
+<launch>
+	<!-- include carote setup -->
+	<include file="$(find carote)/launch/setup.launch"/>
+
+	<group ns="carote">
+		<!-- controller node -->
+		<node name="controller" pkg="carote" type="follower" respawn="true" output="screen" />
+<!--
+		<node name="carote_parameters" pkg="rqt_reconfigure" type="rqt_reconfigure" respawn="false" output="screen"/>
+-->
+	</group>
+</launch>
