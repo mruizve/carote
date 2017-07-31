@@ -15,7 +15,7 @@ carote::Follower::Follower(const std::string& _name)
 carote::Follower::~Follower(void)
 {
 	// if some one is listening, then
-	if( 0<pub_control_base_.getNumSubscribers() )
+	if( 0<pub_base_vel_.getNumSubscribers() )
 	{
 		// stop the robot
 		this->stop();
@@ -35,9 +35,9 @@ void carote::Follower::stop(void)
 	msg_control.angular.x=0.0;
 	msg_control.angular.y=0.0;
 	msg_control.angular.z=0.0;
-	if( 0<pub_control_base_.getNumSubscribers() )
+	if( 0<pub_base_vel_.getNumSubscribers() )
 	{
-		pub_control_base_.publish(msg_control);
+		pub_base_vel_.publish(msg_control);
 	}
 
 	// empty queue
@@ -146,7 +146,7 @@ void carote::Follower::input(const geometry_msgs::PoseArray& _msg)
 		msg_control.angular.x=0.0;
 		msg_control.angular.y=0.0;
 		msg_control.angular.z=0.0;
-		pub_control_base_.publish(msg_control);
+		pub_base_vel_.publish(msg_control);
 	}
 	else
 	{

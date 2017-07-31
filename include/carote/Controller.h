@@ -2,6 +2,7 @@
 #define _CAROTE_CONTROLLER_H_
 
 // topics messages
+#include<brics_actuator/JointPositions.h>  // arm control
 #include<brics_actuator/JointVelocities.h> // arm control
 #include<geometry_msgs/PoseArray.h>        // target {position, orientation}
 #include<geometry_msgs/Twist.h>            // platform or base control
@@ -42,6 +43,8 @@ namespace carote
 			void cbTarget(const geometry_msgs::PoseArray& _msg);
 			void cbControl(const ros::TimerEvent& event);
 
+			void init(void);
+
 			void start(void);
 			void stop(void);
 			void update(void){};
@@ -51,9 +54,10 @@ namespace carote
 			std::string name_;
 			ros::NodeHandle node_;
 
-			// ros stuff: topic subscribers/publishers
-			ros::Publisher pub_control_arm_;
-			ros::Publisher pub_control_base_;
+			// ros stuff: topics subscribers/publishers
+			ros::Publisher pub_arm_pos_;
+			ros::Publisher pub_arm_vel_;
+			ros::Publisher pub_base_vel_;
 			ros::Subscriber sub_operator_;
 			ros::Subscriber sub_state_;
 			ros::Subscriber sub_target_;

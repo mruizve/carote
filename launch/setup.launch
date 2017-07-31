@@ -8,8 +8,9 @@
 		<param name="frames/target" type="str" value="/target" />
 
 		<!-- general topics -->
-		<param name="topics/control_arm" type="str" value="/arm_1/arm_controller/velocity_command"/>
-		<param name="topics/control_base" type="str" value="/cmd_vel"/>
+		<param name="topics/control/arm_position" type="str" value="/arm_1/arm_controller/position_command"/>
+		<param name="topics/control/arm_velocity" type="str" value="/arm_1/arm_controller/velocity_command"/>
+		<param name="topics/control/base" type="str" value="/cmd_vel"/>
 		<param name="topics/operator" type="str" value="/carote/operator/command"/>
 		<param name="topics/state" type="str" value="/joint_state"/>
 		<param name="topics/target" type="str" value="/carote/target/pose"/>
