@@ -6,6 +6,9 @@ add_executable( tweak tweak/node.cpp tweak/tweak.cpp tweak/listener.cpp tweak/pu
 target_link_libraries( tweak ${catkin_LIBRARIES} )
 
 # controller
-add_executable( controller controller/node.cpp controller/controller.cpp )
-add_dependencies( controller ${PROJECT_NAME}_gencfg )
+add_library( controller controller/controller.cpp )
 target_link_libraries( controller ${catkin_LIBRARIES} )
+
+add_executable( follower controller/node.cpp controller/follower.cpp )
+add_dependencies( follower ${PROJECT_NAME}_gencfg )
+target_link_libraries( follower controller ${catkin_LIBRARIES} )

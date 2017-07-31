@@ -8,36 +8,14 @@ template<typename T> int sgn(T val)
 
 carote::Follower::Follower(const std::string& _name)
 :
-	node_("~"),
-	name_(_name)
+	Controller(_name)
 {
-	std::string strpar;
-
-	// ros stuff: prepare for listening to input topics
-	node_.param<std::string>("follower_topic_operator",strpar,"/carote/operator/command");
-	operator_sub_=node_.subscribe(strpar,1,&carote::Follower::input,this);
-
-	node_.param<std::string>("follower_topic_target",strpar,"/carote/target/pose");
-	target_sub_=node_.subscribe(strpar,1,&carote::Follower::input,this);
-
-	// ros stuff: prepare for advertise to the output topics
-	node_.param<std::string>("follower_topic_control",strpar,"/cmd_vel");
-	control_pub_=node_.advertise<geometry_msgs::Twist>(strpar,1);
-
-	// ros stuff: load frames names
-	node_.param<std::string>("follower_frame_target",frame_target_,"target");
-	node_.param<std::string>("follower_frame_reference",frame_reference_,"base_link");
-
-	// ros stuff: dynamic reconfiguration
-	dynamic_reconfigure::Server<carote::ControllerConfig>::CallbackType f;
-	f=boost::bind(&carote::Follower::reconfigure,this,_1,_2);
-	server_.setCallback(f);
 }
 
 carote::Follower::~Follower(void)
 {
 	// if some one is listening, then
-	if( 0<control_pub_.getNumSubscribers() )
+	if( 0<pub_control_base_.getNumSubscribers() )
 	{
 		// stop the robot
 		this->stop();
@@ -50,16 +28,16 @@ void carote::Follower::stop(void)
 	timer_.stop();
 	
 	// stop the robot
-	geometry_msgs::Twist control_msg;
-	control_msg.linear.x=0.0;
-	control_msg.linear.y=0.0;
-	control_msg.linear.z=0.0;
-	control_msg.angular.x=0.0;
-	control_msg.angular.y=0.0;
-	control_msg.angular.z=0.0;
-	if( 0<control_pub_.getNumSubscribers() )
+	geometry_msgs::Twist msg_control;
+	msg_control.linear.x=0.0;
+	msg_control.linear.y=0.0;
+	msg_control.linear.z=0.0;
+	msg_control.angular.x=0.0;
+	msg_control.angular.y=0.0;
+	msg_control.angular.z=0.0;
+	if( 0<pub_control_base_.getNumSubscribers() )
 	{
-		control_pub_.publish(control_msg);
+		pub_control_base_.publish(msg_control);
 	}
 
 	// empty queue
@@ -81,35 +59,33 @@ void carote::Follower::reconfigure(carote::ControllerConfig& config, uint32_t le
 void carote::Follower::input(const geometry_msgs::PoseArray& _msg)
 {
 	// get frames transform (from target to reference)
-	#define _tstamp _msg.header.stamp
-	if( tf_listener_.waitForTransform(frame_reference_,frame_target_,_tstamp,ros::Duration(0.1)) )
+	if( tf_listener_.waitForTransform(frame_id_base_,frame_id_target_,_msg.header.stamp,ros::Duration(0.1)) )
 	{
 		try
 		{
-			tf_listener_.lookupTransform(frame_reference_,frame_target_,_tstamp,tf_);
+			tf_listener_.lookupTransform(frame_id_base_,frame_id_target_,_msg.header.stamp,tf_);
 		}
 		catch( tf::LookupException& ex )
 		{
-			ROS_INFO_STREAM("no transform available: " << ex.what());
+			ROS_INFO_STREAM("transform not available available: " << ex.what());
 			return;
 		}
 		catch( tf::ConnectivityException& ex )
 		{
-			ROS_INFO_STREAM("connectivity error: " << ex.what());
+			ROS_INFO_STREAM("transform connectivity error: " << ex.what());
 			return;
 		}
 		catch( tf::ExtrapolationException& ex )
 		{
-			ROS_INFO_STREAM("extrapolation error: " << ex.what());
+			ROS_INFO_STREAM("transform extrapolation error: " << ex.what());
 			return;
 		}
 	}
 	else
 	{
-		ROS_INFO_STREAM("transformation not available");
+		ROS_INFO_STREAM("transform not available between '" << frame_id_target_ << "' and '" << frame_id_base_ << "'");
 		return;
 	}
-	#undef _tstamp
 
 	// get next control command (platform velocity)
 	Eigen::Vector3d u;
@@ -163,14 +139,14 @@ void carote::Follower::input(const geometry_msgs::PoseArray& _msg)
 	if( params_.enabled )
 	{
 		// send velocity command
-		geometry_msgs::Twist control_msg;
-		control_msg.linear.x=u(0);
-		control_msg.linear.y=0.0;
-		control_msg.linear.z=0.0;
-		control_msg.angular.x=0.0;
-		control_msg.angular.y=0.0;
-		control_msg.angular.z=0.0;
-		control_pub_.publish(control_msg);
+		geometry_msgs::Twist msg_control;
+		msg_control.linear.x=u(0);
+		msg_control.linear.y=0.0;
+		msg_control.linear.z=0.0;
+		msg_control.angular.x=0.0;
+		msg_control.angular.y=0.0;
+		msg_control.angular.z=0.0;
+		pub_control_base_.publish(msg_control);
 	}
 	else
 	{

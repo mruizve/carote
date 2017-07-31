@@ -1,18 +1,95 @@
 #ifndef _CAROTE_CONTROLLER_H_
 #define _CAROTE_CONTROLLER_H_
 
-#include<deque>
-#include<Eigen/Core>
-#include<dynamic_reconfigure/server.h>
-#include<geometry_msgs/PoseArray.h>
+// topics messages
+#include<brics_actuator/JointVelocities.h> // arm control
+#include<geometry_msgs/PoseArray.h>        // target {position, orientation}
+#include<geometry_msgs/Twist.h>            // platform or base control
+#include<geometry_msgs/Vector3.h>          // operator {phi (latitude), lambda (longitude), rho (distance)}
+#include<sensor_msgs/JointState.h>         // robot state (arm and base)
+
+// frames transforms
 #include<tf/tf.h>
 #include<tf/transform_listener.h>
+
+// robot model and kinematics
+#include<kdl_parser/kdl_parser.hpp>
+
+// dynamic reconfigure parameters
+#include<dynamic_reconfigure/server.h>
 #include "carote/ControllerConfig.h"
+
+#include<deque>
+#include<Eigen/Core>
 
 namespace carote
 {
+	typedef struct
+	{
+		Eigen::Vector3d u;
+		Eigen::Matrix<double,5,1> qp;
+	} VelocityControlData;
+	
 	class Controller
 	{
+		public:
+			Controller(const std::string& _name);
+			~Controller(void);
+
+			// operator, target and control callbacks
+			void cbOperator(const geometry_msgs::Vector3& _msg);
+			void cbState(const sensor_msgs::JointState& _msg);
+			void cbTarget(const geometry_msgs::PoseArray& _msg);
+			void cbControl(const ros::TimerEvent& event);
+
+			void start(void);
+			void stop(void);
+			void update(void){};
+
+		protected:
+			// ros stuff: node handle
+			std::string name_;
+			ros::NodeHandle node_;
+
+			// ros stuff: topic subscribers/publishers
+			ros::Publisher pub_control_arm_;
+			ros::Publisher pub_control_base_;
+			ros::Subscriber sub_operator_;
+			ros::Subscriber sub_state_;
+			ros::Subscriber sub_target_;
+
+			// ros stuff: control timer
+			ros::Timer timer_;
+
+			// ros stuff: reference frames
+			std::string frame_id_base_;
+			std::string frame_id_gripper_;
+			std::string frame_id_target_;
+			tf::StampedTransform tf_base_target_;
+			tf::TransformListener tf_listener_;
+
+			// input data: operator
+			int flag_operator_;
+			double phi_;
+			double lambda_;
+			double rho_;
+
+			// input data: joint states
+			Eigen::Matrix<double,5,1> q_;
+			Eigen::Matrix<double,5,1> qp_;
+
+			// input data: target
+			int flag_target_;
+			Eigen::Vector3d t_;
+			Eigen::Matrix3d R_;
+
+			// output data control law
+			std::deque<VelocityControlData> control_queue_;
+
+			// robot model and kinematics
+			KDL::Tree kdl_tree_;
+			KDL::Chain kdl_chain_;
+			
 	};
 	
 	class Follower: public Controller
@@ -27,22 +104,6 @@ namespace carote
 			void reconfigure(carote::ControllerConfig &config, uint32_t level);
 
 		protected:
-			// ros stuff: node handle
-			std::string name_;
-			ros::NodeHandle node_;
-
-			// ros stuff: topic subscribers
-			ros::Subscriber operator_sub_;
-			ros::Subscriber target_sub_;
-
-			// ros stuff: output data
-			ros::Timer timer_;
-			ros::Publisher control_pub_;
-
-			// ros stuff: frames names
-			std::string frame_target_;
-			std::string frame_reference_;
-
 			// ros stuff: parameters handling through dynamic reconfigure 
 			carote::ControllerConfig params_;
 			dynamic_reconfigure::Server<carote::ControllerConfig> server_;
