@@ -8,22 +8,16 @@ project(carote)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
-  dynamic_reconfigure
-  geometry_msgs
-  image_transport
-  pcl_conversions
-  pcl_msgs
-  pcl_ros
-  openni2_launch
-  roscpp
-  std_msgs
-  tf
+	dynamic_reconfigure
+	kdl_parser
+	roscpp
+	tf
+	tf_conversions
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package( OpenCV REQUIRED )
+# find_package( OpenCV REQUIRED )
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
