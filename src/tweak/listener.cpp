@@ -22,23 +22,23 @@ void carote::TweakListener::input(const geometry_msgs::PoseArray& _msg)
 		}
 		catch( tf::LookupException& ex )
 		{
-			ROS_INFO_STREAM("transform not available available: " << ex.what());
+			ROS_INFO_STREAM("tf not available: " << ex.what());
 			return;
 		}
 		catch( tf::ConnectivityException& ex )
 		{
-			ROS_INFO_STREAM("transform connectivity error: " << ex.what());
+			ROS_INFO_STREAM("tf connectivity error: " << ex.what());
 			return;
 		}
 		catch( tf::ExtrapolationException& ex )
 		{
-			ROS_INFO_STREAM("transform extrapolation error: " << ex.what());
+			ROS_INFO_STREAM("tf extrapolation error: " << ex.what());
 			return;
 		}
 	}
 	else
 	{
-		ROS_INFO_STREAM("transform not available between '" << frame_id_target_ << "' and '" << frame_id_gripper_ << "'");
+		ROS_INFO_STREAM("tf not available between '" << frame_id_target_ << "' and '" << frame_id_gripper_ << "'");
 		return;
 	}
 
