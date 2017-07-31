@@ -1,16 +1,21 @@
 <launch>
+	<!-- system parameters -->
 	<group ns="carote">
-		<!-- system parameters -->
+		<!-- general reference frames names -->
+		<param name="frames/base" type="str" value="/base_link"/>
 		<param name="frames/gripper" type="str" value="/gripper_palm_link" />
-		<param name="frames/robot" type="str" value="/base_link"/>
 		<param name="frames/sensor" type="str" value="/camera_rgb_optical_frame" />
 		<param name="frames/target" type="str" value="/target" />
 
-		<param name="topics/control" type="str" value="/cmd_vel"/>
+		<!-- general topics -->
+		<param name="topics/control_arm" type="str" value="/arm_1/arm_controller/velocity_command"/>
+		<param name="topics/control_base" type="str" value="/cmd_vel"/>
 		<param name="topics/operator" type="str" value="/carote/operator/command"/>
+		<param name="topics/state" type="str" value="/joint_state"/>
 		<param name="topics/target" type="str" value="/carote/target/pose"/>
 		<param name="topics/tweak" type="str" value="/carote/target/pose"/>
 
+		<!-- machines URIs -->
 		<param name="uri/pc" type="str" value="http://guacamaya:11311" />
 		<param name="uri/robot" type="str" value="http://scooby-desktop:11311" />
 	</group>
