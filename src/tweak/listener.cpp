@@ -14,11 +14,11 @@ carote::TweakListener::TweakListener(const std::string& _name, int _fd)
 void carote::TweakListener::input(const geometry_msgs::PoseArray& _msg)
 {
 	// get frames transform (from target to gripper)
-	if( tf_listener_.waitForTransform(frame_gripper_,frame_target_,_msg.header.stamp,ros::Duration(0.1)) )
+	if( tf_listener_.waitForTransform(frame_id_gripper_,frame_id_target_,_msg.header.stamp,ros::Duration(0.1)) )
 	{
 		try
 		{
-			tf_listener_.lookupTransform(frame_gripper_,frame_target_,_msg.header.stamp,tf_gripper_target_);
+			tf_listener_.lookupTransform(frame_id_gripper_,frame_id_target_,_msg.header.stamp,tf_gripper_target_);
 		}
 		catch( tf::LookupException& ex )
 		{
@@ -38,7 +38,7 @@ void carote::TweakListener::input(const geometry_msgs::PoseArray& _msg)
 	}
 	else
 	{
-		ROS_INFO_STREAM("transform not available between '" << frame_target_ << "' and '" << frame_gripper_ << "'");
+		ROS_INFO_STREAM("transform not available between '" << frame_id_target_ << "' and '" << frame_id_gripper_ << "'");
 		return;
 	}
 

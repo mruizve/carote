@@ -16,14 +16,14 @@ carote::Tweak::Tweak(const std::string& _name):
 	}
 
 	// get static transform between gripper and sensor
-	if( !node_.getParam("/carote/frames/gripper",frame_gripper_) )
+	if( !node_.getParam("/carote/frames/gripper",frame_id_gripper_) )
 	{
 		// show error and close node
 		ROS_ERROR_STREAM("missing parameter /carote/frames/gripper, include setup.launch in your launch file");
 		exit(EXIT_FAILURE);
 	}
 
-	if( !node_.getParam("/carote/frames/target",frame_target_) )
+	if( !node_.getParam("/carote/frames/target",frame_id_target_) )
 	{
 		// show error and close node
 		ROS_ERROR_STREAM("missing parameter /carote/frames/target, include setup.launch in your launch file");

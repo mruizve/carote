@@ -57,7 +57,7 @@ carote::TweakPublisher::TweakPublisher(const std::string& _name, int _fd)
 
 		geometry_msgs::PoseArray msg;
 		msg.header.stamp=ros::Time::now();
-		msg.header.frame_id=frame_gripper_;
+		msg.header.frame_id=frame_id_gripper_;
 		msg.poses.push_back(pose);
 		pub_target_.publish(msg);
 
@@ -66,6 +66,6 @@ carote::TweakPublisher::TweakPublisher(const std::string& _name, int _fd)
 		transform.setBasis(orientation);
 
 		// publish transform
-		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_gripper_,frame_target_));
+		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_id_gripper_,frame_id_target_));
 	}
 }

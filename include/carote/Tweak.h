@@ -25,8 +25,8 @@ namespace carote
 			std::string topic_name_;
 
 			// ros stuff: transform between gripper and target frames
-			std::string frame_gripper_;
-			std::string frame_target_;
+			std::string frame_id_gripper_;
+			std::string frame_id_target_;
 			tf::StampedTransform tf_gripper_target_;
 	};
 	
