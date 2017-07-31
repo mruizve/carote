@@ -15,6 +15,7 @@
 
 // robot model and kinematics
 #include<kdl_parser/kdl_parser.hpp>
+#include<urdf/model.h>
 
 // dynamic reconfigure parameters
 #include<dynamic_reconfigure/server.h>
@@ -93,7 +94,7 @@ namespace carote
 			// robot model and kinematics
 			KDL::Tree kdl_tree_;
 			KDL::Chain kdl_chain_;
-			
+			urdf::Model model_;
 	};
 	
 	class Follower: public Controller
