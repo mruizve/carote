@@ -12,24 +12,18 @@ carote::Tweak::Tweak(const std::string& _name):
 	// ros stuff: load parameters
 	if( !node_.getParam("/carote/topics/tweak",topic_name_) )
 	{
-		// show error and close node
-		ROS_ERROR_STREAM("missing parameter /carote/topics/tweak, include setup.launch in your launch file");
-		exit(EXIT_FAILURE);
+		throw new std::string("missing parameter /carote/topics/tweak, include setup.launch in your launch file");
 	}
 
 	// get static transform between gripper and sensor
 	if( !node_.getParam("/carote/frames/gripper",frame_id_gripper_) )
 	{
-		// show error and close node
-		ROS_ERROR_STREAM("missing parameter /carote/frames/gripper, include setup.launch in your launch file");
-		exit(EXIT_FAILURE);
+		throw new std::string("missing parameter /carote/frames/gripper, include setup.launch in your launch file");
 	}
 
 	if( !node_.getParam("/carote/frames/target",frame_id_target_) )
 	{
-		// show error and close node
-		ROS_ERROR_STREAM("missing parameter /carote/frames/target, include setup.launch in your launch file");
-		exit(EXIT_FAILURE);
+		throw new std::string("missing parameter /carote/frames/target, include setup.launch in your launch file");
 	}
 }
 

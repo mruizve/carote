@@ -58,7 +58,15 @@ int main(int argc, char **argv)
 		ros::init(argc,argv,ros::this_node::getName());
 
 		// create the tweak publisher node
-		tweak=new carote::TweakPublisher(ros::this_node::getName(),fd[0]);
+		try
+		{
+			tweak=new carote::TweakPublisher(ros::this_node::getName(),fd[0]);
+		}
+		catch( const std::string& ex )
+		{
+			ROS_ERROR_STREAM(ex);
+			ros::shutdown();
+		}
 	}
 	else
 	{
@@ -91,7 +99,15 @@ int main(int argc, char **argv)
 		}
 
 		// create the tweak listener node
-		tweak=new carote::TweakListener(ros::this_node::getName(),fd[1]);
+		try
+		{
+			tweak=new carote::TweakListener(ros::this_node::getName(),fd[1]);
+		}
+		catch( const std::string& ex )
+		{
+			ROS_ERROR_STREAM(ex);
+			ros::shutdown();
+		}
 	}
 	
 	// handle events
