@@ -14,7 +14,11 @@
 #include<tf/transform_listener.h>
 
 // robot model and kinematics
+#include<kdl/frames.hpp>
 #include<kdl_parser/kdl_parser.hpp>
+#include<kdl/chainfksolverpos_recursive.hpp>
+#include<kdl/chainiksolvervel_pinv_givens.hpp>
+#include<kdl/chainiksolverpos_nr_jl.hpp>
 #include<urdf/model.h>
 
 // dynamic reconfigure parameters
@@ -23,6 +27,8 @@
 
 #include<deque>
 #include<Eigen/Core>
+
+#include "carote/Utils.h"
 
 namespace carote
 {
@@ -34,7 +40,7 @@ namespace carote
 	
 	class Controller
 	{
-		public:
+		protected:
 			Controller(const std::string& _name);
 			~Controller(void);
 
@@ -44,11 +50,22 @@ namespace carote
 			void cbTarget(const geometry_msgs::PoseArray& _msg);
 			void cbControl(const ros::TimerEvent& event);
 
-			void init(void);
+			// move to predefined robot poses
+			void moveTo(KDL::JntArray& _q);
 
+			// controller actions
 			void start(void);
 			void stop(void);
-			void update(void){};
+			void update(void);
+
+		private:
+			// initializations 
+			void initROS(void);        // publishers and advertisers
+			void initKinematics(void); // urdf and kdl
+			void initPoses(void);      // predefined poses (zero and home)
+
+			// predefined poses loader
+			void loadXMLPose(const std::string _param, KDL::JntArray& _q);
 
 		protected:
 			// ros stuff: node handle
@@ -79,9 +96,10 @@ namespace carote
 			double lambda_;
 			double rho_;
 
-			// input data: joint states
-			Eigen::Matrix<double,5,1> q_;
-			Eigen::Matrix<double,5,1> qp_;
+			// input data: joints states
+			int flag_states_;
+			KDL::JntArray q_;
+			KDL::JntArray qp_;
 
 			// input data: target
 			int flag_target_;
@@ -95,6 +113,16 @@ namespace carote
 			KDL::Tree kdl_tree_;
 			KDL::Chain kdl_chain_;
 			urdf::Model model_;
+
+			// joints information
+			KDL::JntArray q_lower_;
+			KDL::JntArray q_upper_;
+			std::vector<int> q_types_;
+			std::vector<std::string> q_names_;
+
+			// predefined poses
+			KDL::JntArray q_home_;
+			KDL::JntArray q_zero_;
 	};
 	
 	class Follower: public Controller

@@ -14,36 +14,27 @@ void carote::Controller::cbOperator(const geometry_msgs::Vector3& _msg)
 
 void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 {
-	// update state
-
-	// new data available?
-	if( flag_operator_ || flag_target_ )
+	// update joint states
+	int updated=0;
+    for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
 	{
-		// clear flags
-		flag_operator_=0;
-		flag_target_=0;
-
-		// update control law
-		this->update();
+		for( size_t j=0; _msg.name.size()>j; j++ )
+		{
+			if( _msg.name[j]==q_names_[i] )
+			{
+				q_(i)=_msg.position[j];
+				qp_(i)=_msg.velocity[j];
+				// TODO: effort
+				updated++;
+			}
+		}
 	}
 
-// TODO >>>
-	// get control command
-	VelocityControlData control;
-	if( control_queue_.empty() )
+	// update states flag
+	if( kdl_chain_.getNrOfSegments()==updated )
 	{
-		control.u=Eigen::Vector3d::Zero();
-		control.qp=Eigen::Matrix<double,5,1>::Zero();
+		flag_states_=1;
 	}
-	else
-	{
-		control=control_queue_.front();
-	}
-
-	// publish control command
-	brics_actuator::JointVelocities msg_arm;
-	geometry_msgs::Twist msg_base;
-// >>> TODO
 }
 
 void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)

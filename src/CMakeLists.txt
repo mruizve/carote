@@ -6,7 +6,13 @@ add_executable( tweak tweak/node.cpp tweak/tweak.cpp tweak/listener.cpp tweak/pu
 target_link_libraries( tweak ${catkin_LIBRARIES} )
 
 # controller
-add_library( controller controller/controller.cpp controller/init.cpp controller/callbacks.cpp )
+add_library( controller
+	controller/callbacks.cpp
+	controller/controller.cpp
+	controller/kinematics.cpp
+	controller/ros.cpp
+	controller/poses.cpp
+)
 target_link_libraries( controller ${catkin_LIBRARIES} )
 
 add_executable( follower follower/node.cpp follower/follower.cpp )
