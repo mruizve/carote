@@ -4,6 +4,6 @@
 
 	<group ns="carote">
 		<!-- controller node -->
-		<node name="follower" pkg="carote" type="follower" respawn="true" output="screen" />
+		<node name="follower" pkg="carote" type="follower" output="screen" />
 	</group>
 </launch>
