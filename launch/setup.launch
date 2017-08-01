@@ -20,7 +20,8 @@
 		<param name="uri/pc" type="str" value="http://guacamaya:11311" />
 		<param name="uri/robot" type="str" value="http://scooby-desktop:11311" />
 
-		<!-- controller parameters -->
-		<rosparam param="/carote/controller/home">[{arm_joint_1: 2.9496030794680093}, {arm_joint_2: 0.6763184415502104}, {arm_joint_3: -1.2959069696057897}, {arm_joint_4: 2.683451099571924}, {arm_joint_5: 2.9234289553007162}]</rosparam>
+		<!-- robot poses -->
+		<rosparam param="/carote/poses/home">[{arm_joint_1: 2.9496030794680093}, {arm_joint_2: 0.6763184415502104}, {arm_joint_3: -1.2959069696057897}, {arm_joint_4: 2.683451099571924}, {arm_joint_5: 2.9234289553007162}]</rosparam>
+		<rosparam param="/carote/poses/zero">[{arm_joint_1: 1.0069207223044208e-05}, {arm_joint_2: -1.0069207223044208e-05}, {arm_joint_3: -0.0017278759594743863}, {arm_joint_4: 0.001969026381475293}, {arm_joint_5: 0.005641592441305614}]</rosparam>
 	</group>
 </launch>
