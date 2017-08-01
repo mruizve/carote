@@ -1,6 +1,6 @@
 <launch>
 	<!-- include carote setup -->
-	<include file="$(find carote)/launch/setup.launch"/>
+	<include file="$(find carote)/launch/setup.launch" />
 
 	<!-- camera sensor -->
 	<arg name="camera" default="camera" />
@@ -15,7 +15,7 @@
 	<node pkg="tf" 
 		type="static_transform_publisher"
 		name="rgdb_broadcaster"
-		args="-0.075 0 0   0.7071068 0 0.7071068 0 gripper_palm_link camera_link 100"/>
+		args="-0.075 0 0   0.7071068 0 0.7071068 0 gripper_palm_link camera_link 100" />
 
 	<group ns="carote">
 		<!-- target detection node -->
