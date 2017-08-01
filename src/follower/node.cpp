@@ -6,12 +6,11 @@ int main(int argc, char **argv)
 	// initialize ros stuff
 	ros::init(argc,argv,ros::this_node::getName());
 
-	// create the controller (actuator) node
+	// create the follower controller node
 	carote::Follower controller(ros::this_node::getName());
 
 	// handle events
 	ros::spin();
 
-	// all ok
-	return 0;
+	exit(EXIT_SUCCESS);
 }
