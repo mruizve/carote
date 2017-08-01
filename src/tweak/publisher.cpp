@@ -68,4 +68,13 @@ carote::TweakPublisher::TweakPublisher(const std::string& _name, int _fd)
 		// publish transform
 		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_id_gripper_,frame_id_target_));
 	}
+
+	if( ros::ok() )
+	{
+		ROS_ERROR_STREAM("[" << name_ << "] read() error while tweaking");
+	}
+}
+
+carote::TweakPublisher::~TweakPublisher(void)
+{
 }

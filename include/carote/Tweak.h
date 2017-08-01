@@ -55,8 +55,6 @@ namespace carote
 			TweakPublisher(const std::string& _name, int _fd);
 			~TweakPublisher(void);
 
-			void input(const geometry_msgs::PoseArray& _msg);
-
 		protected:
 			// ros stuff: topic publisher
 			ros::Publisher pub_target_;

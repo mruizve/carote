@@ -6,7 +6,6 @@ int main(int argc, char **argv)
 	// multi-master tweak stuff
 	int fd[2];
 	pid_t pid;
-	carote::Tweak *tweak=NULL;
 
 	// create communication pipe between precesses
 	if( 0>pipe(fd) )
@@ -15,8 +14,8 @@ int main(int argc, char **argv)
 		ros::init(argc,argv,ros::this_node::getName());
 
 		// show error and exit node
-		ROS_ERROR_STREAM("pipe() error during multi-master setup");
-		exit(EXIT_FAILURE);
+		ROS_ERROR_STREAM("[" << ros::this_node::getName() << "] pipe() error during multi-master setup");
+		exit(EXIT_SUCCESS);
 	}
 
 	// create multiple process
@@ -27,8 +26,8 @@ int main(int argc, char **argv)
 		ros::init(argc,argv,ros::this_node::getName());
 
 		// show error and exit node
-		ROS_ERROR_STREAM("fork() error during multi-master setup");
-		exit(EXIT_FAILURE);
+		ROS_ERROR_STREAM("[" << ros::this_node::getName() << "] fork() error during multi-master setup");
+		exit(EXIT_SUCCESS);
 	}
 
 	if( 0==pid )
@@ -47,8 +46,8 @@ int main(int argc, char **argv)
 			ros::init(argc,argv,ros::this_node::getName());
 
 			// show error and exit node
-			ROS_ERROR_STREAM("read() error during multi-master setup");
-			exit(EXIT_FAILURE);
+			ROS_ERROR_STREAM("[" << ros::this_node::getName() << "] read() error during multi-master setup");
+			exit(EXIT_SUCCESS);
 		}
 
 		// replace the ROS_MASTER_URI environment variable
@@ -58,15 +57,7 @@ int main(int argc, char **argv)
 		ros::init(argc,argv,ros::this_node::getName());
 
 		// create the tweak publisher node
-		try
-		{
-			tweak=new carote::TweakPublisher(ros::this_node::getName(),fd[0]);
-		}
-		catch( const std::string& ex )
-		{
-			ROS_ERROR_STREAM(ex);
-			ros::shutdown();
-		}
+		carote::TweakPublisher tweak(ros::this_node::getName(),fd[0]);
 	}
 	else
 	{
@@ -86,38 +77,24 @@ int main(int argc, char **argv)
 		if( uri.empty() )
 		{
 			// show error and exit node
-			ROS_ERROR_STREAM("invalid robot URI during multi-master setup");
-			exit(EXIT_FAILURE);
+			ROS_ERROR_STREAM("[" << ros::this_node::getName() << "] invalid robot URI during multi-master setup");
+			exit(EXIT_SUCCESS);
 		}
 
 		// send URI to the child process
 		if( 0>write(fd[1],uri.c_str(),uri.length()) )
 		{
 			// show error and exit node
-			ROS_ERROR_STREAM("write() error during multi-master setup");
-			exit(EXIT_FAILURE);
+			ROS_ERROR_STREAM("[" << ros::this_node::getName() << "] write() error during multi-master setup");
+			exit(EXIT_SUCCESS);
 		}
 
 		// create the tweak listener node
-		try
-		{
-			tweak=new carote::TweakListener(ros::this_node::getName(),fd[1]);
-		}
-		catch( const std::string& ex )
-		{
-			ROS_ERROR_STREAM(ex);
-			ros::shutdown();
-		}
+		carote::TweakListener tweak(ros::this_node::getName(),fd[1]);
+
+		// handle events
+		ros::spin();
 	}
 	
-	// handle events
-	ros::spin();
-
-	// memory clean up
-	if( NULL!=tweak )
-	{
-		delete tweak;
-	}
-
 	exit(EXIT_SUCCESS);
 }

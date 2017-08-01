@@ -47,8 +47,31 @@ void carote::TweakListener::input(const geometry_msgs::PoseArray& _msg)
 	tf::Matrix3x3& orientation=tf_gripper_target_.getBasis();
 
 	// send transform data to the tweak publisher
-	write(pipe_wr_fd_,&origin[0],4*sizeof(tfScalar));
-	write(pipe_wr_fd_,&orientation[0],4*sizeof(tfScalar));
-	write(pipe_wr_fd_,&orientation[1],4*sizeof(tfScalar));
-	write(pipe_wr_fd_,&orientation[2],4*sizeof(tfScalar));
+	if( 0>=write(pipe_wr_fd_,&origin[0],4*sizeof(tfScalar)) )
+	{
+		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		exit(EXIT_SUCCESS);
+	}
+
+	if( 0>=write(pipe_wr_fd_,&orientation[0],4*sizeof(tfScalar)) )
+	{
+		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		exit(EXIT_SUCCESS);
+	}
+
+	if( 0>=write(pipe_wr_fd_,&orientation[1],4*sizeof(tfScalar)) )
+	{
+		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		exit(EXIT_SUCCESS);
+	}
+
+	if( 0>=write(pipe_wr_fd_,&orientation[2],4*sizeof(tfScalar)) )
+	{
+		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		exit(EXIT_SUCCESS);
+	}
+}
+
+carote::TweakListener::~TweakListener(void)
+{
 }
