@@ -1,5 +1,5 @@
 #include<geometry_msgs/Twist.h>
-#include "carote/Controller.h"
+#include "carote/Follower.h"
 
 template<typename T> int sgn(T val)
 {
@@ -10,83 +10,34 @@ carote::Follower::Follower(const std::string& _name)
 :
 	Controller(_name)
 {
+	// ros stuff: dynamic reconfiguration of controller parameters
+	dynamic_reconfigure::Server<carote::FollowerConfig>::CallbackType f;
+	f=boost::bind(&carote::Follower::cbReconfigure,this,_1,_2);
+	server_.setCallback(f);
 }
 
 carote::Follower::~Follower(void)
 {
+/*
 	// if some one is listening, then
 	if( 0<pub_base_vel_.getNumSubscribers() )
 	{
 		// stop the robot
 		this->stop();
 	}
+*/
 }
 
-void carote::Follower::stop(void)
+void carote::Follower::clean(void)
 {
-	// stop the timer
-	timer_.stop();
-	
-	// stop the robot
-	geometry_msgs::Twist msg_control;
-	msg_control.linear.x=0.0;
-	msg_control.linear.y=0.0;
-	msg_control.linear.z=0.0;
-	msg_control.angular.x=0.0;
-	msg_control.angular.y=0.0;
-	msg_control.angular.z=0.0;
-	if( 0<pub_base_vel_.getNumSubscribers() )
-	{
-		pub_base_vel_.publish(msg_control);
-	}
-
-	// empty queue
-	// TODO
+	ROS_WARN_STREAM("clean() not yet implemented!");
 }
 
-void carote::Follower::reconfigure(carote::ControllerConfig& config, uint32_t level)
+
+void carote::Follower::cbControl(const ros::TimerEvent& _event)
 {
-	// stop the robot (old topic)
-	this->stop();
-
-	// update parameters
-	params_=config;
-
-	// enable controller
-	timer_=node_.createTimer(ros::Rate(params_.rate),&carote::Follower::output,this);
-}
-
-void carote::Follower::input(const geometry_msgs::PoseArray& _msg)
-{
-	// get frames transform (from target to reference)
-	if( tf_listener_.waitForTransform(frame_id_base_,frame_id_target_,_msg.header.stamp,ros::Duration(0.1)) )
-	{
-		try
-		{
-			tf_listener_.lookupTransform(frame_id_base_,frame_id_target_,_msg.header.stamp,tf_);
-		}
-		catch( tf::LookupException& ex )
-		{
-			ROS_INFO_STREAM("transform not available available: " << ex.what());
-			return;
-		}
-		catch( tf::ConnectivityException& ex )
-		{
-			ROS_INFO_STREAM("transform connectivity error: " << ex.what());
-			return;
-		}
-		catch( tf::ExtrapolationException& ex )
-		{
-			ROS_INFO_STREAM("transform extrapolation error: " << ex.what());
-			return;
-		}
-	}
-	else
-	{
-		ROS_INFO_STREAM("transform not available between '" << frame_id_target_ << "' and '" << frame_id_base_ << "'");
-		return;
-	}
-
+	ROS_WARN_STREAM("cbControl() not yet implemented!");
+	/*
 	// get next control command (platform velocity)
 	Eigen::Vector3d u;
 	if( !u_.empty() )
@@ -153,8 +104,33 @@ void carote::Follower::input(const geometry_msgs::PoseArray& _msg)
 		// stop the robot
 		this->stop();
 	}
+*/
 }
 
-void carote::Follower::output(const ros::TimerEvent& event)
+void carote::Follower::cbReconfigure(carote::FollowerConfig& _config, uint32_t _level)
 {
+	// update parameters
+	params_=_config;
+
+	if( params_.enabled )
+	{
+		ros::Duration period(1.0/params_.rate);
+		this->start(period);
+		ros::Duration(1.0).sleep();
+	}
+	else
+	{
+		this->stop();
+		ros::Duration(1.0).sleep();
+	}
+/*
+	// stop the robot (old topic)
+	this->stop();
+
+	// update parameters
+	params_=config;
+
+	// enable controller
+	timer_=node_.createTimer(ros::Rate(params_.rate),&carote::Follower::output,this);
+*/
 }
