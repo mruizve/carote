@@ -1,4 +1,7 @@
 <launch>
+	<!-- include carote setup -->
+	<include file="$(find carote)/launch/setup.launch" />
+
 	<include file="$(find youbot_driver_ros_interface)/launch/youbot_driver.launch" />
 	<include file="$(find youbot_driver_ros_interface)/launch/youbot_joint_state_publisher.launch" />
 </launch>
