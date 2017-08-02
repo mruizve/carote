@@ -21,7 +21,7 @@
 		<param name="uri/robot" type="str" value="http://scooby-desktop:11311" />
 
 		<!-- robot poses -->
-		<rosparam param="/carote/poses/home">[{arm_joint_1: 2.9496030794680093}, {arm_joint_2: 0.6763184415502104}, {arm_joint_3: -1.2959069696057897}, {arm_joint_4: 2.683451099571924}, {arm_joint_5: 2.9234289553007162}]</rosparam>
-		<rosparam param="/carote/poses/zero">[{arm_joint_1: 0.01007}, {arm_joint_2: 0.01007}, {arm_joint_3: -0.015708}, {arm_joint_4: 0.0221239}, {arm_joint_5: 0.11062}]</rosparam>
+		<rosparam param="/carote/poses/home">[{arm_joint_1: 0.01007}, {arm_joint_2: 0.01007}, {arm_joint_3: -0.015708}, {arm_joint_4: 0.0221239}, {arm_joint_5: 0.11062}]</rosparam>
+		<rosparam param="/carote/poses/work">[{arm_joint_1: 2.9496030794680093}, {arm_joint_2: 0.6763184415502104}, {arm_joint_3: -1.2959069696057897}, {arm_joint_4: 2.683451099571924}, {arm_joint_5: 2.9234289553007162}]</rosparam>
 	</group>
 </launch>
