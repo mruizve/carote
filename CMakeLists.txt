@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 	brics_actuator
 	dynamic_reconfigure
 	kdl_parser
+	message_generation
 	roscpp
 	tf
 	tf_conversions
@@ -50,10 +51,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#  Message.msg
-#)
+add_message_files(
+	FILES
+	Operator.msg
+	OperatorStamped.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +72,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+	DEPENDENCIES
+	std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -91,7 +93,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-  cfg/Controller.cfg
+  cfg/Follower.cfg
+  cfg/Operator.cfg
 )
 
 ###################################
@@ -118,8 +121,10 @@ generate_dynamic_reconfigure_options(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS} include
 )
+
+subdirs( src )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -198,11 +203,3 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-
-# project directories structure
-include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/include" )
-#set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin" )
-#set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
-#set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
-
-subdirs( src )
