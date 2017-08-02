@@ -1,15 +1,14 @@
 #include<tf_conversions/tf_eigen.h>
 #include "carote/Controller.h"
+#include "carote/Utils.h"
 
-void carote::Controller::cbOperator(const geometry_msgs::Vector3& _msg)
+void carote::Controller::cbOperator(const carote::OperatorStamped& _msg)
 {
-	// get operator command
-	phi_=_msg.x;
-	lambda_=_msg.y;
-	rho_=_msg.z;
+	// update operator data
+	operator_data_=_msg.data;
 
-	// update operator flag
-	flag_operator_=1;
+	// set flag
+	operator_flag_=1;
 }
 
 void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
@@ -24,7 +23,7 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 			{
 				q_(i)=_msg.position[j];
 				qp_(i)=_msg.velocity[j];
-				// TODO: effort
+				//tau_(i)=_msg.effort[i]
 				updated++;
 			}
 		}
@@ -33,7 +32,7 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 	// update states flag
 	if( kdl_chain_.getNrOfSegments()==updated )
 	{
-		flag_states_=1;
+		states_flag_=1;
 	}
 }
 
@@ -73,18 +72,14 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 	}
 
 	// get target position
-	t_(0)=tf_base_target_.getOrigin()[0];
-	t_(1)=tf_base_target_.getOrigin()[1];
-	t_(2)=tf_base_target_.getOrigin()[2];
+	target_t_(0)=tf_base_target_.getOrigin()[0];
+	target_t_(1)=tf_base_target_.getOrigin()[1];
+	target_t_(2)=tf_base_target_.getOrigin()[2];
 
 	// get target pose
 	tf::Matrix3x3 R=tf_base_target_.getBasis();
-	tf::matrixTFToEigen(R,R_);
+	tf::matrixTFToEigen(R,target_R_);
 
 	// update target data flag
-	flag_target_=1;
-}
-
-void carote::Controller::cbControl(const ros::TimerEvent& event)
-{
+	target_flag_=1;
 }

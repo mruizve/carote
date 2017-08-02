@@ -1,4 +1,5 @@
 #include "carote/Controller.h"
+#include "carote/Utils.h"
 
 void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q)
 {
@@ -54,15 +55,15 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 
 void carote::Controller::initPoses(void)
 {
-	// resize home and zero arrays
+	// resize home and work poses arrays
 	q_home_.resize(kdl_chain_.getNrOfSegments());
-	q_zero_.resize(kdl_chain_.getNrOfSegments());
+	q_work_.resize(kdl_chain_.getNrOfSegments());
 
 	// load home pose
 	this->loadXMLPose("/carote/poses/home",q_home_);
 
-	// load zero pose
-	this->loadXMLPose("/carote/poses/zero",q_zero_);
+	// load initial work pose
+	this->loadXMLPose("/carote/poses/work",q_work_);
 }
 
 void carote::Controller::moveTo(KDL::JntArray& _q)
@@ -82,7 +83,7 @@ void carote::Controller::moveTo(KDL::JntArray& _q)
 			continue;
 		}
 
-		// record data
+		// prepare message data
 		joint.timeStamp=tstamp;
 		joint.joint_uri=q_names_[i];
 		if( urdf::Joint::PRISMATIC==q_types_[i] )
@@ -95,7 +96,7 @@ void carote::Controller::moveTo(KDL::JntArray& _q)
 		}
 		joint.value=_q(i);
 
-		// add data to the messages
+		// add data to the message
 		msg.positions.push_back(joint);
 	}
 
