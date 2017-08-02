@@ -12,21 +12,18 @@ carote::Tweak::Tweak(const std::string& _name):
 	// ros stuff: load parameters
 	if( !node_.getParam("/carote/topics/tweak",topic_name_) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] missing param '/carote/topics/tweak' (must be defined at setup.launch)");
-		exit(EXIT_SUCCESS);
+		CAROTE_NODE_ABORT("missing param '/carote/topics/tweak' (must be defined at setup.launch)");
 	}
 
 	// get static transform between gripper and sensor
 	if( !node_.getParam("/carote/frames/gripper",frame_id_gripper_) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] missing param '/carote/frames/gripper' (must be defined at setup.launch)");
-		exit(EXIT_SUCCESS);
+		CAROTE_NODE_ABORT("missing param '/carote/frames/gripper' (must be defined at setup.launch)");
 	}
 
 	if( !node_.getParam("/carote/frames/target",frame_id_target_) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] missing param '/carote/frames/target' (must be defined at setup.launch");
-		exit(EXIT_SUCCESS);
+		CAROTE_NODE_ABORT("missing param '/carote/frames/target' (must be defined at setup.launch");
 	}
 }
 

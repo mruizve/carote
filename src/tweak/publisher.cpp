@@ -71,7 +71,7 @@ carote::TweakPublisher::TweakPublisher(const std::string& _name, int _fd)
 
 	if( ros::ok() )
 	{
-		ROS_ERROR_STREAM("[" << name_ << "] read() error while tweaking");
+		CAROTE_NODE_ABORT("read() error while tweaking");
 	}
 }
 

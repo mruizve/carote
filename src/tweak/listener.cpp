@@ -49,25 +49,25 @@ void carote::TweakListener::input(const geometry_msgs::PoseArray& _msg)
 	// send transform data to the tweak publisher
 	if( 0>=write(pipe_wr_fd_,&origin[0],4*sizeof(tfScalar)) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		CAROTE_NODE_ABORT("write() error while tweaking");
 		exit(EXIT_SUCCESS);
 	}
 
 	if( 0>=write(pipe_wr_fd_,&orientation[0],4*sizeof(tfScalar)) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		CAROTE_NODE_ABORT("write() error while tweaking");
 		exit(EXIT_SUCCESS);
 	}
 
 	if( 0>=write(pipe_wr_fd_,&orientation[1],4*sizeof(tfScalar)) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		CAROTE_NODE_ABORT("write() error while tweaking");
 		exit(EXIT_SUCCESS);
 	}
 
 	if( 0>=write(pipe_wr_fd_,&orientation[2],4*sizeof(tfScalar)) )
 	{
-		ROS_FATAL_STREAM("[" << name_ << "] write() error while tweaking");
+		CAROTE_NODE_ABORT("write() error while tweaking");
 		exit(EXIT_SUCCESS);
 	}
 }
