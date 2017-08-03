@@ -43,8 +43,7 @@
 			<remap from="/carote/tag_detections_pose" to="/carote/target/pose" />
 		</node>
 
-		<!-- tweak nodes -->
-		<node pkg="carote" type="tweak-operator" name="tweak_operator" output="screen" />
+		<!-- target tweak -->
 		<node pkg="carote" type="tweak-target" name="tweak_target" output="screen" />
 	</group>
 </launch>

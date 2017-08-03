@@ -3,8 +3,13 @@
 	<include file="$(find carote)/launch/setup.launch" />
 
 	<group ns="carote">
-		<!-- operator commands node and gui -->
+		<!-- operator node -->
 		<node pkg="carote" type="operator" name="operator" output="screen" />
+
+		<!-- operator gui -->
 		<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="operator_gui" output="screen" />
+
+		<!-- operator tweak -->
+		<node pkg="carote" type="tweak-operator" name="tweak_operator" output="screen" />
 	</group>
 </launch>
