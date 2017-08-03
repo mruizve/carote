@@ -8,6 +8,7 @@
 	<url type="website">https://www.github.com/mruizve/carote</url>
 
 	<buildtool_depend>catkin</buildtool_depend>
+
 	<build_depend>brics_actuator</build_depend>
 	<build_depend>carote_msgs</build_depend>
 	<build_depend>dynamic_reconfigure</build_depend>
@@ -25,9 +26,4 @@
 	<run_depend>roscpp</run_depend>
 	<run_depend>tf</run_depend>
 	<run_depend>youbot_driver_ros_interface</run_depend>
-
-	<!-- The export tag contains other, unspecified, tags -->
-	<export>
-		<!-- Other tools can request additional information be placed here -->
-	</export>
 </package>
