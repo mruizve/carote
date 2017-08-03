@@ -10,6 +10,11 @@ add_executable( tweak-target tweak/tweak.cpp tweak/target.cpp )
 add_dependencies( tweak-target carote_msgs_generate_messages_cpp )
 target_link_libraries( tweak-target ${catkin_LIBRARIES} )
 
+# operator
+add_executable( operator operator/operator.cpp operator/node.cpp )
+add_dependencies( operator carote_msgs_generate_messages_cpp )
+target_link_libraries( operator ${catkin_LIBRARIES} )
+
 # controller library
 add_library( controller
 	controller/callbacks.cpp

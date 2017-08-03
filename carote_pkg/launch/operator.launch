@@ -1,0 +1,10 @@
+<launch>
+	<!-- include carote setup -->
+	<include file="$(find carote)/launch/setup.launch" />
+
+	<group ns="carote">
+		<!-- operator commands node and gui -->
+		<node pkg="carote" type="operator" name="operator" output="screen" />
+		<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="operator_gui" output="screen" />
+	</group>
+</launch>
