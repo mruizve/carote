@@ -1,6 +1,8 @@
 #ifndef _CAROTE_CONTROLLER_H_
 #define _CAROTE_CONTROLLER_H_
 
+#include<ros/ros.h>
+
 // messages
 #include<carote_msgs/OperatorStamped.h>    // operator {phi (latitude), lambda (longitude), rho (distance)}
 #include<geometry_msgs/PoseArray.h>        // target {position, orientation}

@@ -1,5 +1,4 @@
 #include<signal.h>
-#include<ros/ros.h>
 #include<ros/xmlrpc_manager.h>
 #include "carote/Follower.h"
 

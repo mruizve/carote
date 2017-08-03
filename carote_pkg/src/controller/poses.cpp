@@ -8,7 +8,7 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 	// the input parameter have been defined before running the node?
 	if( !node_.getParam(_param,xmlpar) )
 	{
-		CAROTE_NODE_ABORT("missing param '" << _param << "' (must be defined at setup.launch");
+		CAROTE_NODE_ABORT("missing param '" << _param << "' (must be defined at setup.launch)");
 	}
 
 	// validate the parameter data type
