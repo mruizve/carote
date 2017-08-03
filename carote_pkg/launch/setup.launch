@@ -14,7 +14,6 @@
 		<param name="topics/operator" type="str" value="/carote/operator/command" />
 		<param name="topics/state" type="str" value="/joint_states" />
 		<param name="topics/target" type="str" value="/carote/target/pose" />
-		<param name="topics/tweak" type="str" value="/carote/target/pose" />
 
 		<!-- machines URIs -->
 		<param name="uri/pc" type="str" value="http://guacamaya:11311" />
