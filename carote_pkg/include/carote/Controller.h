@@ -2,7 +2,7 @@
 #define _CAROTE_CONTROLLER_H_
 
 // messages
-#include<carote/OperatorStamped.h>         // operator {phi (latitude), lambda (longitude), rho (distance)}
+#include<carote_msgs/OperatorStamped.h>    // operator {phi (latitude), lambda (longitude), rho (distance)}
 #include<geometry_msgs/PoseArray.h>        // target {position, orientation}
 #include<brics_actuator/JointPositions.h>  // robot control (arm)
 #include<brics_actuator/JointVelocities.h> // robot control (arm)
@@ -31,7 +31,7 @@ namespace carote
 
 			// operator, target and control callbacks
 			virtual void cbControl(const ros::TimerEvent& _event)=0;
-			void cbOperator(const carote::OperatorStamped& _msg);
+			void cbOperator(const carote_msgs::OperatorStamped& _msg);
 			void cbState(const sensor_msgs::JointState& _msg);
 			void cbTarget(const geometry_msgs::PoseArray& _msg);
 
@@ -82,7 +82,7 @@ namespace carote
 
 			// input data: operator
 			int operator_flag_;
-			carote::Operator operator_data_;
+			carote_msgs::Operator operator_data_;
 				
 			// input data: joints states
 			int states_flag_;

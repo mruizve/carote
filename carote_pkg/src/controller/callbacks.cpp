@@ -2,7 +2,7 @@
 #include "carote/Controller.h"
 #include "carote/Utils.h"
 
-void carote::Controller::cbOperator(const carote::OperatorStamped& _msg)
+void carote::Controller::cbOperator(const carote_msgs::OperatorStamped& _msg)
 {
 	// update operator data
 	operator_data_=_msg.data;
