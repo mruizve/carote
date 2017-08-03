@@ -4,7 +4,7 @@
 source $(dirname $0)/setup-environment.sh
 
 # connect to the robot ros master
-uri=($(grep "uri/robot" "$(dirname $0)/../launch/setup.launch"))
+uri=($(roscd carote/launch; grep "uri/robot" "setup.launch"))
 uri=${uri[3]//\"}
 uri=${uri#value\=}
 export ROS_MASTER_URI="$uri"
