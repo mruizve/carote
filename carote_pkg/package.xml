@@ -9,6 +9,7 @@
 
 	<buildtool_depend>catkin</buildtool_depend>
 	<build_depend>brics_actuator</build_depend>
+	<build_depend>carote_msgs</build_depend>
 	<build_depend>dynamic_reconfigure</build_depend>
 	<build_depend>kdl_parser</build_depend>
 	<build_depend>message_generation</build_depend>
@@ -17,6 +18,7 @@
 	<build_depend>tf_conversions</build_depend>
 
 	<run_depend>apriltags_ros</run_depend>
+	<run_depend>carote_msgs</run_depend>
 	<run_depend>dynamic_reconfigure</run_depend>
 	<run_depend>message_runtime</run_depend>
 	<run_depend>openni2_launch</run_depend>

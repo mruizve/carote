@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	tf
 	tf_conversions
+	carote_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -51,11 +52,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-	FILES
-	Operator.msg
-	OperatorStamped.msg
-)
+#add_message_files(
+#	FILES
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -72,10 +71,9 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-	DEPENDENCIES
-	std_msgs
-)
+#generate_messages(
+#	DEPENDENCIES
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -106,12 +104,12 @@ generate_dynamic_reconfigure_options(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-#catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES carote
-#  CATKIN_DEPENDS message_runtime
-#  DEPENDS system_lib
-#)
+catkin_package(
+	INCLUDE_DIRS include
+#	LIBRARIES
+	CATKIN_DEPENDS message_runtime carote_msgs
+#	DEPENDS system_lib
+)
 
 ###########
 ## Build ##
