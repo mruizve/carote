@@ -3,8 +3,8 @@
 # prepare ros environment
 source /opt/ros/indigo/setup.bash
 
-if [ -f ~/catkin_ws/devel/setup.bash ]; then
-	source ~/catkin_ws/devel/setup.bash
+if [ -f ~/carote_ws/devel/setup.bash ]; then
+	source ~/carote_ws/devel/setup.bash
 fi
 
 if [ -f ~/workspace/ros/devel/setup.sh ]; then
