@@ -5,6 +5,11 @@ void carote::Controller::initKinematics(void)
 {
 	std::string strpar;
 
+	// this should be part of the constructor initializations
+    kdl_fp_solver_=NULL;
+    kdl_iv_solver_=NULL;
+	kdl_ip_solver_=NULL;
+
 	// get the robot urdf model
 	if( !node_.getParam("/robot_description",strpar) )
 	{
@@ -29,13 +34,8 @@ void carote::Controller::initKinematics(void)
 		CAROTE_NODE_ABORT("cannot build the kdl chain of the arm");
     }
 
-	// resize joints values, velocities and limits arrays
-	q_.resize(kdl_chain_.getNrOfSegments());
-	qp_.resize(kdl_chain_.getNrOfSegments());
-	q_lower_.resize(kdl_chain_.getNrOfSegments());
-	q_upper_.resize(kdl_chain_.getNrOfSegments());
-
-	// for each segment of the chain,
+	// count number of non-fixed joints
+	njoints_=0;
     for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
     {
 		KDL::Segment segment=kdl_chain_.getSegment(i);
@@ -52,18 +52,75 @@ void carote::Controller::initKinematics(void)
 			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF parent_joint!?");
 		}
 
+		if( urdf::Joint::FIXED!=joint->type )
+		{
+			njoints_++;
+		}
+	}
+
+	// resize joints values, velocities and limits arrays
+	q_.resize(njoints_);
+	qp_.resize(njoints_);
+	q_lower_.resize(njoints_);
+	q_upper_.resize(njoints_);
+
+	// for each segment of the chain,
+    for( int i=0,j=0; kdl_chain_.getNrOfSegments()>i; i++ )
+    {
+		KDL::Segment segment=kdl_chain_.getSegment(i);
+
+		// get URDF joint information
+		boost::shared_ptr<const urdf::Link> link=model_.getLink(segment.getName());
+		if( !link )
+		{
+			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF link!?");
+		}
+		boost::shared_ptr<const urdf::Joint> joint=model_.getJoint(link->parent_joint->name);
+		if( !joint )
+		{
+			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF parent_joint!?");
+		}
+
 		// extract limits, types and names
-		q_lower_(i)=(joint->limits)?joint->limits->lower:0.0;
-		q_upper_(i)=(joint->limits)?joint->limits->upper:0.0;
-		q_types_.push_back(joint->type);
-		q_names_.push_back(joint->name);
+		if( urdf::Joint::FIXED!=joint->type )
+		{
+			if( !joint->limits )
+			{
+				CAROTE_NODE_ABORT("don't know how to handle joints without limits");
+			}
+			q_lower_(j)=joint->limits->lower;
+			q_upper_(j)=joint->limits->upper;
+
+			q_types_.push_back(joint->type);
+			q_names_.push_back(joint->name);
+
+			j++;
+		}
 	}
 
     // forward position and inverse velocity solvers
     // (needed by the geometric -inverse position- solver)
-    KDL::ChainFkSolverPos_recursive kdl_fp_solver(kdl_chain_);
-    KDL::ChainIkSolverVel_pinv_givens kdl_iv_solver(kdl_chain_);
+    kdl_fp_solver_=new KDL::ChainFkSolverPos_recursive(kdl_chain_);
+    kdl_iv_solver_=new KDL::ChainIkSolverVel_pinv_givens(kdl_chain_);
     
     // geometric solver definition (with joint limits)
-	KDL::ChainIkSolverPos_NR_JL kdl_ip_solver(kdl_chain_,q_lower_,q_upper_,kdl_fp_solver,kdl_iv_solver,500,1e-6);
+	kdl_ip_solver_=new KDL::ChainIkSolverPos_NR_JL(kdl_chain_,q_lower_,q_upper_,*kdl_fp_solver_,*kdl_iv_solver_,500,1e-6);
+}
+
+void carote::Controller::cleanupKinematics(void)
+{
+	if( NULL!=kdl_fp_solver_ )
+	{
+		delete kdl_fp_solver_;
+	}
+
+	if( NULL!=kdl_iv_solver_)
+	{
+		delete kdl_iv_solver_;
+	}
+
+	if( NULL!=kdl_ip_solver_ )
+	{
+		delete kdl_ip_solver_;
+	}
 }

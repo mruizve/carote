@@ -4,6 +4,7 @@ carote::Controller::Controller(const std::string& _name)
 :
 	node_("~"),
 	name_(_name),
+	njoints_(0),
 	operator_flag_(0),
 	states_flag_(0),
 	target_flag_(0)
@@ -18,26 +19,20 @@ carote::Controller::Controller(const std::string& _name)
 	this->initPoses();
 
 	// show status to the user
-    for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
+    for( int i=0; njoints_>i; i++ )
     {
-		if( urdf::Joint::FIXED!=q_types_[i] )
-		{
-			ROS_WARN_STREAM("[arm chain] "
-				<< q_names_[i]
-				<< ", range=[" << q_lower_(i) << "," << q_upper_(i)
-				<< "], poses={ home=" << q_home_(i)
-				<< ", work=" << q_work_(i)
-				<< " }");
-		}
-		else
-		{
-			ROS_WARN_STREAM("[arm chain] " << q_names_[i] << ", fixed");
-		}
+		ROS_WARN_STREAM("[arm chain] "
+			<< q_names_[i]
+			<< ", range=[" << q_lower_(i) << "," << q_upper_(i)
+			<< "], poses={ home=" << q_home_(i)
+			<< ", work=" << q_work_(i)
+			<< " }");
 	}
 }
 
 carote::Controller::~Controller(void)
 {
+	this->cleanupKinematics();
 }
 
 void carote::Controller::home(void)
@@ -46,7 +41,10 @@ void carote::Controller::home(void)
 	this->stop();
 
 	// move robot to the home position
-	this->moveTo(q_home_);
+	this->armPose(q_home_);
+
+	// wait some time
+	ros::Duration(0.5).sleep();
 }
 
 void carote::Controller::start(ros::Duration _period)
@@ -73,7 +71,10 @@ void carote::Controller::work(void)
 	this->stop();
 
 	// move robot to the work position
-	this->moveTo(q_work_);
+	this->armPose(q_work_);
+
+	// wait some time
+	ros::Duration(0.5).sleep();
 }
 
 void carote::Controller::zero(void)
@@ -98,14 +99,8 @@ void carote::Controller::zero(void)
 	msg_arm.poisonStamp.originator=name_;
 
 	// for each joint of the chain
-    for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
+    for( int i=0; njoints_>i; i++ )
 	{
-		// that is not fixed,
-		if( urdf::Joint::FIXED==q_types_[i] )
-		{
-			continue;
-		}
-
 		// prepare message data
 		brics_actuator::JointValue velocity;
 		velocity.timeStamp=stamp;
@@ -126,4 +121,7 @@ void carote::Controller::zero(void)
 
 	// publish message
 	pub_arm_vel_.publish(msg_arm);
+
+	// wait some time
+	ros::Duration(0.5).sleep();
 }

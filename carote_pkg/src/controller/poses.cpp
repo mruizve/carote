@@ -18,13 +18,8 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 	}
 
 	// for each segment of the arm chain,
-	for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
+	for( int i=0; njoints_>i; i++ )
 	{
-		if( urdf::Joint::FIXED==q_types_[i] )
-		{
-			continue;
-		}
-
 		// parse joint value on the XML parameter
 		int missing=1;
 		for( int j=0; xmlpar.size()>j; j++ )
@@ -56,8 +51,8 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 void carote::Controller::initPoses(void)
 {
 	// resize home and work poses arrays
-	q_home_.resize(kdl_chain_.getNrOfSegments());
-	q_work_.resize(kdl_chain_.getNrOfSegments());
+	q_home_.resize(njoints_);
+	q_work_.resize(njoints_);
 
 	// load home pose
 	this->loadXMLPose("/carote/poses/home",q_home_);
@@ -66,7 +61,7 @@ void carote::Controller::initPoses(void)
 	this->loadXMLPose("/carote/poses/work",q_work_);
 }
 
-void carote::Controller::moveTo(KDL::JntArray& _q)
+void carote::Controller::armPose(KDL::JntArray& _q)
 {
 	ros::Time tstamp=ros::Time::now();
 
@@ -75,14 +70,8 @@ void carote::Controller::moveTo(KDL::JntArray& _q)
 
 	// for each joint of the chain
 	brics_actuator::JointValue joint;
-	for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
+	for( int i=0; njoints_>i; i++ )
 	{
-		// that is not fixed,
-		if( urdf::Joint::FIXED==q_types_[i] )
-		{
-			continue;
-		}
-
 		// prepare message data
 		joint.timeStamp=tstamp;
 		joint.joint_uri=q_names_[i];
