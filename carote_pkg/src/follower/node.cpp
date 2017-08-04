@@ -1,4 +1,5 @@
 #include<signal.h>
+#include<ros/ros.h>
 #include<ros/xmlrpc_manager.h>
 #include "carote/Follower.h"
 
@@ -49,7 +50,6 @@ int main(int argc, char **argv)
 
 	// initialize robot
 	follower.work();
-	ros::Duration(1.0).sleep();
 
 	// handle events with custom ros::spin() until a shutdown request is received
 	while( !g_shutdown_flag )
@@ -57,9 +57,8 @@ int main(int argc, char **argv)
 		ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.1));
 	}
 
-	// send robot to home
+	// send robot to the home configuration
 	follower.home();
-	ros::Duration(1.0).sleep();
 
 	// real shutdown
 	ros::shutdown();
