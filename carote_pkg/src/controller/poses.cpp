@@ -18,7 +18,8 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 	}
 
 	// for each segment of the arm chain,
-	for( int i=0; njoints_>i; i++ )
+	const std::vector<std::string> &q_names=model_->getJointsNames();
+	for( int i=0; model_->getNrOfJoints()>i; i++ )
 	{
 		// parse joint value on the XML parameter
 		int missing=1;
@@ -27,23 +28,23 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 			XmlRpc::XmlRpcValue& xmlval=xmlpar[j];
 
 			// value found?
-			if( xmlval.hasMember(q_names_[i]) )
+			if( xmlval.hasMember(q_names[i]) )
 			{
 				// validate value type
-				if( XmlRpc::XmlRpcValue::TypeDouble!=xmlval[q_names_[i]].getType() )
+				if( XmlRpc::XmlRpcValue::TypeDouble!=xmlval[q_names[i]].getType() )
 				{
-					CAROTE_NODE_ABORT("invalid param '" << _param << "': wrong '"+q_names_[i]+"' value type");
+					CAROTE_NODE_ABORT("invalid param '" << _param << "': wrong '"+q_names[i]+"' value type");
 				}
 
 				// assign value
-				_q(i)=(double)xmlval[q_names_[i]];
+				_q(i)=(double)xmlval[q_names[i]];
 				missing=0;
 				break;
 			}
 		}
 		if( missing )
 		{
-			CAROTE_NODE_ABORT("invalid param '" << _param << "': missing '"+q_names_[i]+"' value");
+			CAROTE_NODE_ABORT("invalid param '" << _param << "': missing '"+q_names[i]+"' value");
 		}
 	}
 }
@@ -51,8 +52,8 @@ void carote::Controller::loadXMLPose(const std::string _param, KDL::JntArray& _q
 void carote::Controller::initPoses(void)
 {
 	// resize home and work poses arrays
-	q_home_.resize(njoints_);
-	q_work_.resize(njoints_);
+	q_home_.resize(model_->getNrOfJoints());
+	q_work_.resize(model_->getNrOfJoints());
 
 	// load home pose
 	this->loadXMLPose("/carote/poses/home",q_home_);
@@ -70,19 +71,14 @@ void carote::Controller::armPose(KDL::JntArray& _q)
 
 	// for each joint of the chain
 	brics_actuator::JointValue joint;
-	for( int i=0; njoints_>i; i++ )
+	const std::vector<std::string> &q_names=model_->getJointsNames();
+	const std::vector<std::string> &q_units=model_->getJointsUnits();
+	for( int i=0; model_->getNrOfJoints()>i; i++ )
 	{
 		// prepare message data
 		joint.timeStamp=tstamp;
-		joint.joint_uri=q_names_[i];
-		if( urdf::Joint::PRISMATIC==q_types_[i] )
-		{
-			joint.unit="meters";
-		}
-		else
-		{
-			joint.unit="rad";
-		}
+		joint.joint_uri=q_names[i];
+		joint.unit=q_units[i];
 		joint.value=_q(i);
 
 		// add data to the message

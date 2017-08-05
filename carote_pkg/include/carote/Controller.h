@@ -2,22 +2,13 @@
 #define _CAROTE_CONTROLLER_H_
 
 #include<ros/ros.h>
-
-// messages
 #include<carote_msgs/OperatorStamped.h>    // operator {phi (latitude), lambda (longitude), rho (distance)}
 #include<geometry_msgs/PoseArray.h>        // target {position, orientation}
 #include<brics_actuator/JointPositions.h>  // robot control (arm)
 #include<brics_actuator/JointVelocities.h> // robot control (arm)
 #include<geometry_msgs/Twist.h>            // robot control (platform or base)
 #include<sensor_msgs/JointState.h>         // robot state (arm and base)
-
-// robot model and kinematics
-#include<kdl/frames.hpp>
-#include<kdl_parser/kdl_parser.hpp>
-#include<kdl/chainfksolverpos_recursive.hpp>
-#include<kdl/chainiksolvervel_pinv_givens.hpp>
-#include<kdl/chainiksolverpos_nr_jl.hpp>
-#include<urdf/model.h>
+#include "carote/Model.h"
 
 namespace carote
 {
@@ -56,11 +47,7 @@ namespace carote
 		private:
 			// initializations 
 			void initROS(void);        // publishers and advertisers
-			void initKinematics(void); // urdf and kdl
 			void initPoses(void);      // predefined poses (zero and home)
-
-			// clean up
-			void cleanupKinematics(void);
 
 			// predefined poses loader
 			void loadXMLPose(const std::string _param, KDL::JntArray& _q);
@@ -80,12 +67,15 @@ namespace carote
 
 			// ros stuff: reference frames
 			std::string frame_id_base_;
-			std::string frame_id_gripper_;
+			std::string frame_id_tip_;
 			std::string frame_id_target_;
 
 		private:
 			// ros stuff: controller timer
 			ros::Timer timer_;
+
+			// robot model
+			carote::Model *model_;
 
 			// input data: operator
 			int operator_flag_;
@@ -100,21 +90,6 @@ namespace carote
 			KDL::Frame target_;
 
 			KDL::Twist u_;
-
-			// robot model
-			int njoints_;
-			urdf::Model model_;
-			KDL::JntArray q_lower_;
-			KDL::JntArray q_upper_;
-			std::vector<int> q_types_;
-			std::vector<std::string> q_names_;
-
-			// kinematics
-			KDL::Tree kdl_tree_;
-			KDL::Chain kdl_chain_;
-			KDL::ChainIkSolverVel_pinv_givens *kdl_iv_solver_;
-			KDL::ChainFkSolverPos_recursive *kdl_fp_solver_;
-			KDL::ChainIkSolverPos_NR_JL *kdl_ip_solver_;
 
 			// predefined poses
 			KDL::JntArray q_home_; // shutdown pose

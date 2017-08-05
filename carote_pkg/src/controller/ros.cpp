@@ -54,9 +54,9 @@ void carote::Controller::initROS(void)
 	}
 
 	// get the name of platform or base reference frame
-	if( !node_.getParam("/carote/frames/gripper",frame_id_gripper_) )
+	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
 	{
-		CAROTE_NODE_ABORT("missing param '/carote/frames/gripper' (must be defined at setup.launch)");
+		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
 	}
 
 	// get the name of the target reference frame

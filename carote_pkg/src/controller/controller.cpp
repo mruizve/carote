@@ -1,10 +1,11 @@
 #include "carote/Controller.h"
+#include "carote/Utils.h"
 
 carote::Controller::Controller(const std::string& _name)
 :
 	node_("~"),
 	name_(_name),
-	njoints_(0),
+	model_(NULL),
 	operator_flag_(0),
 	states_flag_(0),
 	target_flag_(0)
@@ -12,27 +13,30 @@ carote::Controller::Controller(const std::string& _name)
 	// ros initialization
 	this->initROS();
 
-	// udrf/kld initializations
-	this->initKinematics();
+	// get the robot urdf model
+	std::string xmlpar;
+	if( !node_.getParam("/robot_description",xmlpar) )
+	{
+		CAROTE_NODE_ABORT("missing param '/robot_description' (launch robot drivers before controller)");
+	}
+
+	// create model
+	model_=new carote::Model(xmlpar,frame_id_base_.substr(1),frame_id_tip_.substr(1));
+
+	// resize joint states arrays
+	q_.resize(model_->getNrOfJoints());
+	qp_.resize(model_->getNrOfJoints());
 
 	// poses initialization
 	this->initPoses();
-
-	// show status to the user
-    for( int i=0; njoints_>i; i++ )
-    {
-		ROS_WARN_STREAM("[arm chain] "
-			<< q_names_[i]
-			<< ", range=[" << q_lower_(i) << "," << q_upper_(i)
-			<< "], poses={ home=" << q_home_(i)
-			<< ", work=" << q_work_(i)
-			<< " }");
-	}
 }
 
 carote::Controller::~Controller(void)
 {
-	this->cleanupKinematics();
+	if( NULL!=model_ )
+	{
+		delete model_;
+	}
 }
 
 void carote::Controller::home(void)
@@ -99,20 +103,15 @@ void carote::Controller::zero(void)
 	msg_arm.poisonStamp.originator=name_;
 
 	// for each joint of the chain
-    for( int i=0; njoints_>i; i++ )
+	const std::vector<std::string>& q_names=model_->getJointsNames();
+	const std::vector<std::string>& qp_units=model_->getSpeedsUnits();
+    for( int i=0; model_->getNrOfJoints()>i; i++ )
 	{
 		// prepare message data
 		brics_actuator::JointValue velocity;
 		velocity.timeStamp=stamp;
-		velocity.joint_uri=q_names_[i];
-		if( urdf::Joint::PRISMATIC==q_types_[i] )
-		{
-			velocity.unit="s^-1 meters";
-		}
-		else
-		{
-			velocity.unit="s^-1 rad";
-		}
+		velocity.joint_uri=q_names[i];
+		velocity.unit=qp_units[i];
 		velocity.value=0.0;
 
 		// add data to the message

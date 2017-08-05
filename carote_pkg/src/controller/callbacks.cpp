@@ -17,11 +17,11 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 {
 	// update joint states
 	int updated=0;
-    for( int i=0; njoints_>i; i++ )
+    for( int i=0; model_->getNrOfJoints()>i; i++ )
 	{
 		for( size_t j=0; _msg.name.size()>j; j++ )
 		{
-			if( _msg.name[j]==q_names_[i] )
+			if( _msg.name[j]==model_->getJointName(i) )
 			{
 				q_(i)=_msg.position[j];
 				qp_(i)=_msg.velocity[j];
@@ -32,7 +32,7 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 	}
 
 	// update states flag
-	if( njoints_==updated )
+	if( model_->getNrOfJoints()==updated )
 	{
 		states_flag_=1;
 	}

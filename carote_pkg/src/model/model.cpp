@@ -1,52 +1,47 @@
-#include "carote/Controller.h"
+#include<urdf/model.h>
+#include<kdl_parser/kdl_parser.hpp>
+#include "carote/Model.h"
 #include "carote/Utils.h"
 
-void carote::Controller::initKinematics(void)
+carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base, const std::string& _frame_id_tip)
+:
+    kdl_fp_solver_(NULL),
+    kdl_iv_solver_(NULL),
+	kdl_ip_solver_(NULL)
 {
-	std::string strpar;
-
-	// this should be part of the constructor initializations
-    kdl_fp_solver_=NULL;
-    kdl_iv_solver_=NULL;
-	kdl_ip_solver_=NULL;
-
-	// get the robot urdf model
-	if( !node_.getParam("/robot_description",strpar) )
-	{
-		CAROTE_NODE_ABORT("missing param '/robot_description' (launch robot drivers before controller)");
-	}
-
 	// load URDF model
-    if( !model_.initString(strpar) )
+	urdf::Model urdf_model;
+    if( !urdf_model.initString(_xml) )
     {
         CAROTE_NODE_ABORT("could not initialize an URDF model from '/robot_description' parameter");
     }
 
 	// generate KDL tree from URDF model
-	if( !kdl_parser::treeFromString(strpar,kdl_tree_) )
+	KDL::Tree kdl_tree;
+	if( !kdl_parser::treeFromString(_xml,kdl_tree) )
 	{
         CAROTE_NODE_ABORT("could not initialize a KDL tree from '/robot_description' parameter");
 	}
 
 	// extract KDL chain of the arm
-	if( !kdl_tree_.getChain(frame_id_base_.substr(1),frame_id_tip_.substr(1),kdl_chain_) )
+	if( !kdl_tree.getChain(_frame_id_base,_frame_id_tip,kdl_chain_) )
 	{
 		CAROTE_NODE_ABORT("cannot build the kdl chain of the arm");
     }
 
 	// count number of non-fixed joints
-	njoints_=0;
+	nJoints_=0;
     for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
     {
 		KDL::Segment segment=kdl_chain_.getSegment(i);
 
 		// get URDF joint information
-		boost::shared_ptr<const urdf::Link> link=model_.getLink(segment.getName());
+		boost::shared_ptr<const urdf::Link> link=urdf_model.getLink(segment.getName());
 		if( !link )
 		{
 			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF link!?");
 		}
-		boost::shared_ptr<const urdf::Joint> joint=model_.getJoint(link->parent_joint->name);
+		boost::shared_ptr<const urdf::Joint> joint=urdf_model.getJoint(link->parent_joint->name);
 		if( !joint )
 		{
 			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF parent_joint!?");
@@ -54,15 +49,13 @@ void carote::Controller::initKinematics(void)
 
 		if( urdf::Joint::FIXED!=joint->type )
 		{
-			njoints_++;
+			nJoints_++;
 		}
 	}
 
 	// resize joints values, velocities and limits arrays
-	q_.resize(njoints_);
-	qp_.resize(njoints_);
-	q_lower_.resize(njoints_);
-	q_upper_.resize(njoints_);
+	q_lower_.resize(nJoints_);
+	q_upper_.resize(nJoints_);
 
 	// for each segment of the chain,
     for( int i=0,j=0; kdl_chain_.getNrOfSegments()>i; i++ )
@@ -70,12 +63,12 @@ void carote::Controller::initKinematics(void)
 		KDL::Segment segment=kdl_chain_.getSegment(i);
 
 		// get URDF joint information
-		boost::shared_ptr<const urdf::Link> link=model_.getLink(segment.getName());
+		boost::shared_ptr<const urdf::Link> link=urdf_model.getLink(segment.getName());
 		if( !link )
 		{
 			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF link!?");
 		}
-		boost::shared_ptr<const urdf::Joint> joint=model_.getJoint(link->parent_joint->name);
+		boost::shared_ptr<const urdf::Joint> joint=urdf_model.getJoint(link->parent_joint->name);
 		if( !joint )
 		{
 			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF parent_joint!?");
@@ -92,7 +85,19 @@ void carote::Controller::initKinematics(void)
 			q_upper_(j)=joint->limits->upper;
 
 			q_types_.push_back(joint->type);
+
 			q_names_.push_back(joint->name);
+
+			if( urdf::Joint::PRISMATIC==joint->type )
+			{
+				q_units_.push_back("meters");
+				qp_units_.push_back("s^-1 meters");
+			}
+			else
+			{
+				q_units_.push_back("rad");
+				qp_units_.push_back("s^-1 rad");
+			}
 
 			j++;
 		}
@@ -105,9 +110,15 @@ void carote::Controller::initKinematics(void)
     
     // geometric solver definition (with joint limits)
 	kdl_ip_solver_=new KDL::ChainIkSolverPos_NR_JL(kdl_chain_,q_lower_,q_upper_,*kdl_fp_solver_,*kdl_iv_solver_,500,1e-6);
+
+	// dump model
+    for( int i=0; nJoints_>i; i++ )
+    {
+		ROS_WARN_STREAM("[arm chain] " << q_names_[i] << ", range=[" << q_lower_(i) << "," << q_upper_(i) << "]");
+	}
 }
 
-void carote::Controller::cleanupKinematics(void)
+carote::Model::~Model(void)
 {
 	if( NULL!=kdl_fp_solver_ )
 	{
@@ -123,4 +134,54 @@ void carote::Controller::cleanupKinematics(void)
 	{
 		delete kdl_ip_solver_;
 	}
+}
+
+int carote::Model::getNrOfJoints(void)
+{
+	return nJoints_;
+}
+
+const std::string& carote::Model::getJointName(int i)
+{
+	if( 0>i || q_names_.size()<=i )
+	{
+        CAROTE_NODE_ABORT("carote::Model::getJointName(): index out of bounds");
+	}
+
+	return q_names_[i];
+}
+
+const std::vector<std::string>& carote::Model::getJointsNames(void)
+{
+	return q_names_;
+}
+
+const std::string& carote::Model::getJointUnit(int i)
+{
+	if( 0>i || q_names_.size()<=i )
+	{
+        CAROTE_NODE_ABORT("carote::Model::getJointName(): index out of bounds");
+	}
+
+	return q_units_[i];
+}
+
+const std::vector<std::string>& carote::Model::getJointsUnits(void)
+{
+	return q_units_;
+}
+
+const std::string& carote::Model::getSpeedUnit(int i)
+{
+	if( 0>i || q_names_.size()<=i )
+	{
+        CAROTE_NODE_ABORT("carote::Model::getJointName(): index out of bounds");
+	}
+
+	return qp_units_[i];
+}
+
+const std::vector<std::string>& carote::Model::getSpeedsUnits(void)
+{
+	return qp_units_;
 }
