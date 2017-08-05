@@ -3,7 +3,7 @@
 	<group ns="carote">
 		<!-- general reference frames names -->
 		<param name="frames/base" type="str" value="/base_link" />
-		<param name="frames/gripper" type="str" value="/gripper_palm_link" />
+		<param name="frames/tip" type="str" value="/gripper_palm_link" />
 		<param name="frames/sensor" type="str" value="/camera_rgb_optical_frame" />
 		<param name="frames/target" type="str" value="/target" />
 
