@@ -15,15 +15,15 @@ carote::TweakTarget::TweakTarget(int &_argc, char **_argv)
 		CAROTE_NODE_ABORT("missing param '/carote/topics/target' (must be defined at setup.launch)");
 	}
 
-	// get static transform between tip and sensor
-	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
-	{
-		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
-	}
-
+	// get frames id of the target and tip
 	if( !node_.getParam("/carote/frames/target",frame_id_target_) )
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/frames/target' (must be defined at setup.launch");
+	}
+
+	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
+	{
+		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
 	}
 
 	if( 0==pid_ )
@@ -168,7 +168,7 @@ void carote::TweakTarget::publish(void)
 		transform.setOrigin(origin);
 		transform.setBasis(orientation);
 
-		// publish transform
+		// publish target transform with respect tip
 		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_id_tip_,frame_id_target_));
 	}
 
