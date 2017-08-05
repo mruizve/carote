@@ -69,8 +69,9 @@ namespace carote
 
 			// ros stuff: reference frames
 			std::string frame_id_base_;
-			std::string frame_id_tip_;
+			std::string frame_id_goal_;
 			std::string frame_id_target_;
+			std::string frame_id_tip_;
 
 			// ros stuff: controller timer
 			ros::Timer timer_;
@@ -79,17 +80,17 @@ namespace carote
 			carote::Model *model_;
 
 			// input/output data
-			int states_flag_;                // joints states
+			int states_flag_;   // joints states
 			KDL::JntArray q_;
 			KDL::JntArray qp_;
 
-			int operator_flag_;              // operator commands
-			carote_msgs::Operator operator_;
+			int goal_flag_;     // operator's goal
+			KDL::Frame goal_;
 
-			int target_flag_;                // target pose
+			int target_flag_;   // target pose
 			KDL::Frame target_;
 
-			KDL::Twist u_;                   // base twist
+			KDL::Twist u_;      // base twist
 
 			// predefined poses
 			KDL::JntArray q_home_; // shutdown pose

@@ -53,10 +53,10 @@ void carote::Controller::initROS(void)
 		CAROTE_NODE_ABORT("missing param '/carote/frames/base' (must be defined at setup.launch)");
 	}
 
-	// get the name of platform or base reference frame
-	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
+	// get the name of operator goal reference frame
+	if( !node_.getParam("/carote/frames/goal",frame_id_goal_) )
 	{
-		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
+		CAROTE_NODE_ABORT("missing param '/carote/frames/goal' (must be defined at setup.launch)");
 	}
 
 	// get the name of the target reference frame
@@ -64,4 +64,11 @@ void carote::Controller::initROS(void)
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/frames/target' (must be defined at setup.launch)");
 	}
+
+	// get the name of platform or base reference frame
+	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
+	{
+		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
+	}
+
 }
