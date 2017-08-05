@@ -7,7 +7,7 @@
 void carote::Controller::cbOperator(const carote_msgs::OperatorStamped& _msg)
 {
 	// update operator data
-	operator_data_=_msg.data;
+	operator_=_msg.data;
 
 	// set flag
 	operator_flag_=1;
@@ -77,7 +77,7 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 	}
 
 	// get target frame
-	transformTFToKDL(tf_base_target,target_);
+	tf::transformTFToKDL(tf_base_target,target_);
 
 	// update target data flag
 	target_flag_=1;

@@ -39,18 +39,6 @@ carote::Controller::~Controller(void)
 	}
 }
 
-void carote::Controller::home(void)
-{
-	// stop the robot
-	this->stop();
-
-	// move robot to the home position
-	this->armPose(q_home_);
-
-	// wait some time
-	ros::Duration(0.5).sleep();
-}
-
 void carote::Controller::start(ros::Duration _period)
 {
 	// stop the robot
@@ -68,19 +56,6 @@ void carote::Controller::stop(void)
 	// stop the robot motion
 	this->zero();
 }
-
-void carote::Controller::work(void)
-{
-	// stop the robot
-	this->stop();
-
-	// move robot to the work position
-	this->armPose(q_work_);
-
-	// wait some time
-	ros::Duration(0.5).sleep();
-}
-
 void carote::Controller::zero(void)
 {
 	// delete any residual control action
@@ -88,38 +63,10 @@ void carote::Controller::zero(void)
 	this->clean();
 
 	// stop the robot platform or base
-	geometry_msgs::Twist msg_base;
-	msg_base.linear.x=0.0;
-	msg_base.linear.y=0.0;
-	msg_base.linear.z=0.0;
-	msg_base.angular.x=0.0;
-	msg_base.angular.y=0.0;
-	msg_base.angular.z=0.0;
-	pub_base_vel_.publish(msg_base);	
+	this->baseTwist(KDL::Twist::Zero());
 	
 	// stop the arm
-	ros::Time stamp=ros::Time::now();
-	brics_actuator::JointVelocities msg_arm;
-	msg_arm.poisonStamp.originator=name_;
-
-	// for each joint of the chain
-	const std::vector<std::string>& q_names=model_->getJointsNames();
-	const std::vector<std::string>& qp_units=model_->getSpeedsUnits();
-    for( int i=0; model_->getNrOfJoints()>i; i++ )
-	{
-		// prepare message data
-		brics_actuator::JointValue velocity;
-		velocity.timeStamp=stamp;
-		velocity.joint_uri=q_names[i];
-		velocity.unit=qp_units[i];
-		velocity.value=0.0;
-
-		// add data to the message
-		msg_arm.velocities.push_back(velocity);
-	}
-
-	// publish message
-	pub_arm_vel_.publish(msg_arm);
+	this->armSpeed(KDL::JntArray(model_->getNrOfJoints()));
 
 	// wait some time
 	ros::Duration(0.5).sleep();

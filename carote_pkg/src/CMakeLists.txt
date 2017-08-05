@@ -19,6 +19,7 @@ target_link_libraries( model ${catkin_LIBRARIES} )
 # controller library
 add_library( controller
 	controller/callbacks.cpp
+	controller/commands.cpp
 	controller/controller.cpp
 	controller/ros.cpp
 	controller/poses.cpp

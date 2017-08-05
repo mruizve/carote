@@ -19,6 +19,9 @@ namespace carote
 			void home(void);
 			void work(void);
 
+			// stop robot motion
+			void zero(void);
+
 			// control enable/disable
 			void start(ros::Duration _period);
 			void stop(void);
@@ -27,24 +30,23 @@ namespace carote
 			Controller(const std::string& _name);
 			~Controller(void);
 
-			// operator, target and control callbacks
+			// control callbacks
 			virtual void cbControl(const ros::TimerEvent& _event)=0;
-			void cbOperator(const carote_msgs::OperatorStamped& _msg);
-			void cbState(const sensor_msgs::JointState& _msg);
-			void cbTarget(const geometry_msgs::PoseArray& _msg);
 
 			// erase any pending control command
 			virtual void clean(void)=0;
 
-			// stop robot motion
-			void zero(void);
-
-			// move the arm to a given pose
-			void armPose(KDL::JntArray& _q);
-			void armVelocity(KDL::JntArray& _q);
-			void baseTwist(KDL::Twist& _u);
+			// arm and base control
+			void armPose(const KDL::JntArray& _q);
+			void armSpeed(const KDL::JntArray& _q);
+			void baseTwist(const KDL::Twist& _u);
 
 		private:
+			// input data callbacks
+			void cbOperator(const carote_msgs::OperatorStamped& _msg);
+			void cbState(const sensor_msgs::JointState& _msg);
+			void cbTarget(const geometry_msgs::PoseArray& _msg);
+
 			// initializations 
 			void initROS(void);        // publishers and advertisers
 			void initPoses(void);      // predefined poses (zero and home)
@@ -52,15 +54,15 @@ namespace carote
 			// predefined poses loader
 			void loadXMLPose(const std::string _param, KDL::JntArray& _q);
 
-		protected:
+		private:
 			// ros stuff: node handle
 			std::string name_;
 			ros::NodeHandle node_;
 
 			// ros stuff: topics subscribers/publishers
-			ros::Publisher pub_arm_pos_;
-			ros::Publisher pub_arm_vel_;
-			ros::Publisher pub_base_vel_;
+			ros::Publisher pub_q_;         // joint values
+			ros::Publisher pub_qp_;        // joints velocities
+			ros::Publisher pub_u_;         // base twist
 			ros::Subscriber sub_operator_;
 			ros::Subscriber sub_state_;
 			ros::Subscriber sub_target_;
@@ -70,26 +72,24 @@ namespace carote
 			std::string frame_id_tip_;
 			std::string frame_id_target_;
 
-		private:
 			// ros stuff: controller timer
 			ros::Timer timer_;
 
 			// robot model
 			carote::Model *model_;
 
-			// input data: operator
-			int operator_flag_;
-			carote_msgs::Operator operator_data_;
-				
-			// input/output data: joints states, target frame, twist commands
-			int states_flag_;
+			// input/output data
+			int states_flag_;                // joints states
 			KDL::JntArray q_;
 			KDL::JntArray qp_;
 
-			int target_flag_;
+			int operator_flag_;              // operator commands
+			carote_msgs::Operator operator_;
+
+			int target_flag_;                // target pose
 			KDL::Frame target_;
 
-			KDL::Twist u_;
+			KDL::Twist u_;                   // base twist
 
 			// predefined poses
 			KDL::JntArray q_home_; // shutdown pose

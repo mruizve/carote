@@ -10,21 +10,21 @@ void carote::Controller::initROS(void)
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/topics/control/base' (must be defined at setup.launch)");
 	}
-	pub_base_vel_=node_.advertise<geometry_msgs::Twist>(strpar,1);
+	pub_u_=node_.advertise<geometry_msgs::Twist>(strpar,1);
 
 	// prepare for advertise to the control topics of the arm
 	if( !node_.getParam("/carote/topics/control/arm_position",strpar) )
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/topics/control/arm_position' (must be defined at setup.launch)");
 	}
-	pub_arm_pos_=node_.advertise<brics_actuator::JointPositions>(strpar,1);
+	pub_q_=node_.advertise<brics_actuator::JointPositions>(strpar,1);
 
 	// prepare for advertise to the control topics of the arm
 	if( !node_.getParam("/carote/topics/control/arm_velocity",strpar) )
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/topics/control/arm_velocity' (must be defined at setup.launch)");
 	}
-	pub_arm_vel_=node_.advertise<brics_actuator::JointVelocities>(strpar,1);
+	pub_qp_=node_.advertise<brics_actuator::JointVelocities>(strpar,1);
 
 	// prepare for listening to the operator topic
 	if( !node_.getParam("/carote/topics/operator",strpar) )

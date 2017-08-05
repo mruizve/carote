@@ -62,29 +62,27 @@ void carote::Controller::initPoses(void)
 	this->loadXMLPose("/carote/poses/work",q_work_);
 }
 
-void carote::Controller::armPose(KDL::JntArray& _q)
+
+void carote::Controller::home(void)
 {
-	ros::Time tstamp=ros::Time::now();
+	// stop the robot
+	this->stop();
 
-	// initialize message
-	brics_actuator::JointPositions msg;
+	// move robot to the home position
+	this->armPose(q_home_);
 
-	// for each joint of the chain
-	brics_actuator::JointValue joint;
-	const std::vector<std::string> &q_names=model_->getJointsNames();
-	const std::vector<std::string> &q_units=model_->getJointsUnits();
-	for( int i=0; model_->getNrOfJoints()>i; i++ )
-	{
-		// prepare message data
-		joint.timeStamp=tstamp;
-		joint.joint_uri=q_names[i];
-		joint.unit=q_units[i];
-		joint.value=_q(i);
+	// wait some time
+	ros::Duration(0.5).sleep();
+}
 
-		// add data to the message
-		msg.positions.push_back(joint);
-	}
+void carote::Controller::work(void)
+{
+	// stop the robot
+	this->stop();
 
-	// publish message
-	pub_arm_pos_.publish(msg);
+	// move robot to the work position
+	this->armPose(q_work_);
+
+	// wait some time
+	ros::Duration(0.5).sleep();
 }
