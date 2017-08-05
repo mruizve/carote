@@ -1,5 +1,8 @@
-#include "carote/Tweak.h"
-#include "carote/Utils.h"
+#include "tweak.hpp"
+
+// instantiate tweak template
+template carote::Tweak<carote_msgs::OperatorStamped>::Tweak(int&,char**);
+template carote::Tweak<carote_msgs::OperatorStamped>::~Tweak(void);
 
 carote::TweakOperator::TweakOperator(int &_argc, char **_argv)
 :

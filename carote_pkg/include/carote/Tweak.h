@@ -6,16 +6,19 @@
 #include<geometry_msgs/PoseArray.h>
 #include<tf/tf.h>
 #include<tf/transform_listener.h>
-//#include "carote/TweakConfig.h"
 
 namespace carote
 {
-	class Tweak
+	template<typename T> class Tweak
 	{
 		public:
 			Tweak(int &_argc, char **_argv);
 			virtual ~Tweak(void)=0;
-		
+
+		protected:
+			virtual void listen(const T& _msg)=0;
+			virtual void publish(void)=0;
+
 		protected:
 			// ros stuff: node
 			std::string name_;
@@ -30,7 +33,7 @@ namespace carote
 			int pipe_fd_[2];
 	};
 
-	class TweakOperator: public Tweak
+	class TweakOperator: public Tweak<carote_msgs::OperatorStamped>
 	{
 		public:
 			TweakOperator(int &_argc, char **_argv);
@@ -45,7 +48,7 @@ namespace carote
 			ros::NodeHandle node_;
 	};
 	
-	class TweakTarget: public Tweak
+	class TweakTarget: public Tweak<geometry_msgs::PoseArray>
 	{
 		public:
 			TweakTarget(int &_argc, char **_argv);

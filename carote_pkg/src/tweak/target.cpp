@@ -1,6 +1,9 @@
 #include<tf/transform_broadcaster.h>
-#include "carote/Tweak.h"
-#include "carote/Utils.h"
+#include "tweak.hpp"
+
+// instantiate tweak template
+template carote::Tweak<geometry_msgs::PoseArray>::Tweak(int&,char**);
+template carote::Tweak<geometry_msgs::PoseArray>::~Tweak(void);
 
 carote::TweakTarget::TweakTarget(int &_argc, char **_argv)
 :

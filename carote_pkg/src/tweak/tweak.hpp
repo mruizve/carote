@@ -1,12 +1,7 @@
-/*
-#include<arpa/inet.h>
-#include<sys/socket.h>
-#include<boost/date_time/posix_time/posix_time.hpp>
-*/
 #include "carote/Tweak.h"
 #include "carote/Utils.h"
 
-carote::Tweak::Tweak(int &_argc, char **_argv)
+template<typename T> carote::Tweak<T>::Tweak(int &_argc, char **_argv)
 {
 	// create communication pipe between precesses
 	if( 0>pipe(pipe_fd_) )
@@ -87,6 +82,6 @@ carote::Tweak::Tweak(int &_argc, char **_argv)
 	}
 }
 
-carote::Tweak::~Tweak(void)
+template<typename T> carote::Tweak<T>::Tweak::~Tweak(void)
 {
 }
