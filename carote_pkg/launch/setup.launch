@@ -3,9 +3,10 @@
 	<group ns="carote">
 		<!-- general reference frames names -->
 		<param name="frames/base" type="str" value="/base_link" />
+		<param name="frames/goal" type="str" value="/goal" />
+		<param name="frames/target" type="str" value="/target" />
 		<param name="frames/tip" type="str" value="/gripper_palm_link" />
 		<param name="frames/sensor" type="str" value="/camera_rgb_optical_frame" />
-		<param name="frames/target" type="str" value="/target" />
 
 		<!-- general topics -->
 		<param name="topics/control/arm_position" type="str" value="/arm_1/arm_controller/position_command" />
