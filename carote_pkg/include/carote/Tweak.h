@@ -62,11 +62,11 @@ namespace carote
 			// ros stuff: node handle
 			ros::NodeHandle node_;
 
-			// ros stuff: transform between gripper and target frames
-			std::string frame_id_gripper_;
+			// ros stuff: transform between tip and target frames
+			std::string frame_id_tip_;
 			std::string frame_id_target_;
 			tf::TransformListener tf_listener_;
-			tf::StampedTransform tf_gripper_target_;
+			tf::StampedTransform tf_tip_target_;
 	};
 }
 
