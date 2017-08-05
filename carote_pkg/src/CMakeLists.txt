@@ -2,11 +2,11 @@
 #set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=gnu++11" )
 
 # tweaks
-add_executable( tweak-operator tweak/tweak.cpp tweak/operator.cpp )
+add_executable( tweak-operator tweak/operator.cpp )
 add_dependencies( tweak-operator carote_msgs_generate_messages_cpp )
 target_link_libraries( tweak-operator ${catkin_LIBRARIES} )
 
-add_executable( tweak-target tweak/tweak.cpp tweak/target.cpp )
+add_executable( tweak-target tweak/target.cpp )
 add_dependencies( tweak-target carote_msgs_generate_messages_cpp )
 target_link_libraries( tweak-target ${catkin_LIBRARIES} )
 
