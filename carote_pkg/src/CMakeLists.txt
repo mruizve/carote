@@ -13,7 +13,7 @@ add_dependencies( operator carote_msgs_generate_messages_cpp )
 target_link_libraries( operator ${catkin_LIBRARIES} )
 
 # model library
-add_library( model model/model.cpp )
+add_library( model model/model.cpp model/joints.cpp model/kinematics.cpp )
 target_link_libraries( model ${catkin_LIBRARIES} )
 
 # controller library

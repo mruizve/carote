@@ -18,6 +18,7 @@ namespace carote
 			// geometry
 			int getNrOfJoints(void);
 			int getJacobian(void);
+			int JntToCart(KDL::JntArray& _q, KDL::Frame& _f);
 
 			// joints data
 			const std::string& getJointName(int i);
