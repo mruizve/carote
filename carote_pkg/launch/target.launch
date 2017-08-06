@@ -11,12 +11,6 @@
 		<arg name="camera" default="$(arg camera)" />
 	</include>
 
-	<!-- static transform between the robot and the camera sensor -->
-	<node pkg="tf" 
-		type="static_transform_publisher"
-		name="rgdb_broadcaster"
-		args="-0.075 0 0   0.7071068 0 0.7071068 0 gripper_palm_link camera_link 100" />
-
 	<group ns="carote">
 		<!-- target detection node -->
 		<node pkg="apriltags_ros" type="apriltag_detector_node" name="target" output="screen">

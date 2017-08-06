@@ -15,15 +15,15 @@ carote::TweakTarget::TweakTarget(int &_argc, char **_argv)
 		CAROTE_NODE_ABORT("missing param '/carote/topics/target' (must be defined at setup.launch)");
 	}
 
-	// get frames id of the target and tip
+	// get frame id of the sensor and target
+	if( !node_.getParam("/carote/frames/sensor",frame_id_sensor_) )
+	{
+		CAROTE_NODE_ABORT("missing param '/carote/frames/sensor' (must be defined at setup.launch");
+	}
+
 	if( !node_.getParam("/carote/frames/target",frame_id_target_) )
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/frames/target' (must be defined at setup.launch");
-	}
-
-	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
-	{
-		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
 	}
 
 	if( 0==pid_ )
@@ -57,11 +57,11 @@ carote::TweakTarget::~TweakTarget(void)
 void carote::TweakTarget::listen(const geometry_msgs::PoseArray& _msg)
 {
 	// get frames transform (from target to tip)
-	if( tf_listener_.waitForTransform(frame_id_tip_,frame_id_target_,_msg.header.stamp,ros::Duration(0.1)) )
+	if( tf_listener_.waitForTransform(frame_id_sensor_,frame_id_target_,_msg.header.stamp,ros::Duration(0.1)) )
 	{
 		try
 		{
-			tf_listener_.lookupTransform(frame_id_tip_,frame_id_target_,_msg.header.stamp,tf_tip_target_);
+			tf_listener_.lookupTransform(frame_id_sensor_,frame_id_target_,_msg.header.stamp,tf_sensor_target_);
 		}
 		catch( tf::LookupException& ex )
 		{
@@ -81,13 +81,13 @@ void carote::TweakTarget::listen(const geometry_msgs::PoseArray& _msg)
 	}
 	else
 	{
-		ROS_INFO_STREAM("tf not available between '" << frame_id_target_ << "' and '" << frame_id_tip_ << "'");
+		ROS_INFO_STREAM("tf not available between '" << frame_id_target_ << "' and '" << frame_id_sensor_ << "'");
 		return;
 	}
 
 	// get transform data
-	tf::Vector3& origin=tf_tip_target_.getOrigin();
-	tf::Matrix3x3& orientation=tf_tip_target_.getBasis();
+	tf::Vector3& origin=tf_sensor_target_.getOrigin();
+	tf::Matrix3x3& orientation=tf_sensor_target_.getBasis();
 
 	// send transform data to the tweak publisher
 	if( 0>=write(pipe_fd_[1],&origin[0],4*sizeof(tfScalar)) )
@@ -160,7 +160,7 @@ void carote::TweakTarget::publish(void)
 
 		geometry_msgs::PoseArray msg;
 		msg.header.stamp=ros::Time::now();
-		msg.header.frame_id=frame_id_tip_;
+		msg.header.frame_id=frame_id_sensor_;
 		msg.poses.push_back(pose);
 		publisher_.publish(msg);
 
@@ -169,7 +169,7 @@ void carote::TweakTarget::publish(void)
 		transform.setBasis(orientation);
 
 		// publish target transform with respect tip
-		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_id_tip_,frame_id_target_));
+		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_id_sensor_,frame_id_target_));
 	}
 
 	// issues while receiving data through the pipe?

@@ -63,10 +63,10 @@ namespace carote
 			ros::NodeHandle node_;
 
 			// ros stuff: transform between tip and target frames
-			std::string frame_id_tip_;
+			std::string frame_id_sensor_;
 			std::string frame_id_target_;
 			tf::TransformListener tf_listener_;
-			tf::StampedTransform tf_tip_target_;
+			tf::StampedTransform tf_sensor_target_;
 	};
 }
 
