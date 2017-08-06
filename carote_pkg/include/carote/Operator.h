@@ -2,8 +2,6 @@
 #define _CAROTE_OPERATOR_H_
 
 #include<ros/ros.h>
-#include<tf/tf.h>
-#include<tf/transform_broadcaster.h>
 #include<dynamic_reconfigure/server.h>
 #include "carote/OperatorConfig.h"
 
@@ -27,12 +25,6 @@ namespace carote
 
 			// ros stuff: parameters handling through dynamic reconfigure 
 			dynamic_reconfigure::Server<carote::OperatorConfig> server_;
-
-			// ros stuff: transform between tip and target frame
-			std::string frame_id_goal_;
-			std::string frame_id_target_;
-			tf::Transform tf_target_goal_;
-			tf::TransformBroadcaster tf_broadcaster_;
 	};
 }
 

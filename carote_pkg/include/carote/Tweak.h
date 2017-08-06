@@ -46,12 +46,6 @@ namespace carote
 		protected:
 			// ros stuff: node handle
 			ros::NodeHandle node_;
-
-			// ros stuff: transform between tip and target frames
-			std::string frame_id_goal_;
-			std::string frame_id_target_;
-			tf::TransformListener tf_listener_;
-			tf::StampedTransform tf_target_goal_;
 	};
 	
 	class TweakTarget: public Tweak<geometry_msgs::PoseArray>
