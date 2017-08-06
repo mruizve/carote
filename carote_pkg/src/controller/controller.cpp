@@ -8,6 +8,7 @@ carote::Controller::Controller(const std::string& _name)
 	model_(NULL),
 	states_flag_(0),
 	goal_flag_(0),
+	operator_flag_(0),
 	target_flag_(0)
 {
 	// ros initialization

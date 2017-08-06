@@ -67,14 +67,19 @@ namespace carote
 			ros::Subscriber sub_state_;
 			ros::Subscriber sub_target_;
 
+			// ros stuff: controller timer
+			ros::Timer timer_;
+
+			// predefined poses
+			KDL::JntArray q_home_; // shutdown pose
+			KDL::JntArray q_work_; // initial work pose
+
+		protected:
 			// ros stuff: reference frames
 			std::string frame_id_base_;
 			std::string frame_id_goal_;
 			std::string frame_id_target_;
 			std::string frame_id_tip_;
-
-			// ros stuff: controller timer
-			ros::Timer timer_;
 
 			// robot model
 			carote::Model *model_;
@@ -84,17 +89,15 @@ namespace carote
 			KDL::JntArray q_;
 			KDL::JntArray qp_;
 
-			int goal_flag_;     // operator's goal
+			int goal_flag_;     // goal pose
+			int operator_flag_; // goal pose parameters
+			carote_msgs::Operator goal_params_;
 			KDL::Frame goal_;
 
 			int target_flag_;   // target pose
 			KDL::Frame target_;
 
 			KDL::Twist u_;      // base twist
-
-			// predefined poses
-			KDL::JntArray q_home_; // shutdown pose
-			KDL::JntArray q_work_; // initial work pose
 	};
 }
 
