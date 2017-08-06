@@ -111,8 +111,9 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 		R.UnitY(y);
 		R.UnitZ(z);
 
-		// generate the goal frame in base coordinates
-		goal_=KDL::Frame(R,t+target_.p);
+		// generate the goal frame in target coordinates
+		goal_=KDL::Frame(R,t+target_.p); // base coordinates
+		goal_=target_.Inverse()*goal_;   // target coordinates
 
 		// clear/set corresponding flags
 		goal_flag_=1;
@@ -127,6 +128,6 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 		tf::transformKDLToTF(goal_,tf_goal);
 
 		// broadcast desired goal pose
-		tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_base_,frame_id_goal_));
+		tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_target_,frame_id_goal_));
 	}
 }
