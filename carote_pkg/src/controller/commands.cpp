@@ -1,3 +1,6 @@
+#include<brics_actuator/JointPositions.h>  // robot control (arm)
+#include<brics_actuator/JointVelocities.h> // robot control (arm)
+#include<geometry_msgs/Twist.h>            // robot control (platform or base)
 #include "carote/Controller.h"
 
 void carote::Controller::armPose(const KDL::JntArray& _q)

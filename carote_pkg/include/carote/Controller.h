@@ -4,9 +4,6 @@
 #include<ros/ros.h>
 #include<carote_msgs/OperatorStamped.h>    // operator {phi (latitude), lambda (longitude), rho (distance)}
 #include<geometry_msgs/PoseArray.h>        // target {position, orientation}
-#include<brics_actuator/JointPositions.h>  // robot control (arm)
-#include<brics_actuator/JointVelocities.h> // robot control (arm)
-#include<geometry_msgs/Twist.h>            // robot control (platform or base)
 #include<sensor_msgs/JointState.h>         // robot state (arm and base)
 #include "carote/Model.h"
 
@@ -84,7 +81,7 @@ namespace carote
 			// robot model
 			carote::Model *model_;
 
-			// input/output data
+			// input data
 			int states_flag_;   // joints states
 			KDL::JntArray q_;
 			KDL::JntArray qp_;
@@ -97,8 +94,6 @@ namespace carote
 
 			int target_flag_;   // target pose
 			KDL::Frame target_;
-
-			KDL::Twist u_;      // base twist
 	};
 }
 
