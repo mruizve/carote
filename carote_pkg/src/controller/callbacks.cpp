@@ -41,51 +41,39 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 
 void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 {
-	static tf::StampedTransform tf_base_target;
+	tf::StampedTransform tf_base_target;
 	static tf::TransformListener tf_listener;
 	static tf::TransformBroadcaster tf_broadcaster;
 
-	// if the target is not with respect frame_id_base_, then lookup the correct transformation
-	if( _msg.header.frame_id!=frame_id_base_ )
+	// get the last target transform with respect base
+	try
 	{
-		// get frames transform (from target to base)
-		if( tf_listener.waitForTransform(frame_id_base_,frame_id_target_,_msg.header.stamp,ros::Duration(0.01)) )
-		{
-			try
-			{
-				tf_listener.lookupTransform(frame_id_base_,frame_id_target_,_msg.header.stamp,tf_base_target);
-			}
-			catch( tf::LookupException& ex )
-			{
-				ROS_INFO_STREAM("tf not available: " << ex.what());
-				return;
-			}
-			catch( tf::ConnectivityException& ex )
-			{
-				ROS_INFO_STREAM("tf connectivity error: " << ex.what());
-				return;
-			}
-			catch( tf::ExtrapolationException& ex )
-			{
-				ROS_INFO_STREAM("tf extrapolation error: " << ex.what());
-				return;
-			}
-		}
-		else
-		{
-			ROS_INFO_STREAM("tf not available between '" << frame_id_target_ << "' and '" << frame_id_base_ << "'");
-			return;
-		}
+		tf_listener.lookupTransform(frame_id_base_,frame_id_target_,ros::Time(0),tf_base_target);
+	}
+	catch( tf::LookupException& ex )
+	{
+		ROS_INFO_STREAM("tf not available: " << ex.what());
+		return;
+	}
+	catch( tf::ConnectivityException& ex )
+	{
+		ROS_INFO_STREAM("tf connectivity error: " << ex.what());
+		return;
+	}
+	catch( tf::ExtrapolationException& ex )
+	{
+		ROS_INFO_STREAM("tf extrapolation error: " << ex.what());
+		return;
 	}
 
-	// get target frame
+	// convert get target transform to KDL frame
 	tf::transformTFToKDL(tf_base_target,target_);
 
 	// update target data flag
 	target_flag_=1;
 
 	// if the operator have provided new parameters for the goal computation, then
-	if( target_flag_ && operator_flag_ )
+	if( operator_flag_ )
 	{
 		// compute the desired position in virtual target coordinates
 		KDL::Vector t;
@@ -123,11 +111,9 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 	// if there is a goal defined, then
 	if( goal_flag_ )
 	{
-		// broadcast the goal transformation
+		// broadcast desired goal pose
 		tf::Transform tf_goal;
 		tf::transformKDLToTF(goal_,tf_goal);
-
-		// broadcast desired goal pose
 		tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_target_,frame_id_goal_));
 	}
 }
