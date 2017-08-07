@@ -4,8 +4,6 @@
 #include<ros/ros.h>
 #include<carote_msgs/OperatorStamped.h>
 #include<geometry_msgs/PoseArray.h>
-#include<tf/tf.h>
-#include<tf/transform_listener.h>
 
 namespace carote
 {
@@ -65,8 +63,6 @@ namespace carote
 			// ros stuff: transform between tip and target frames
 			std::string frame_id_sensor_;
 			std::string frame_id_target_;
-			tf::TransformListener tf_listener_;
-			tf::StampedTransform tf_sensor_target_;
 	};
 }
 

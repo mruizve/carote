@@ -1,3 +1,4 @@
+#include<tf/tf.h>
 #include<tf/transform_broadcaster.h>
 #include "tweak.hpp"
 
@@ -56,120 +57,46 @@ carote::TweakTarget::~TweakTarget(void)
 
 void carote::TweakTarget::listen(const geometry_msgs::PoseArray& _msg)
 {
-	// get frames transform (from target to tip)
-	if( tf_listener_.waitForTransform(frame_id_sensor_,frame_id_target_,_msg.header.stamp,ros::Duration(0.1)) )
-	{
-		try
-		{
-			tf_listener_.lookupTransform(frame_id_sensor_,frame_id_target_,_msg.header.stamp,tf_sensor_target_);
-		}
-		catch( tf::LookupException& ex )
-		{
-			ROS_INFO_STREAM("tf not available: " << ex.what());
-			return;
-		}
-		catch( tf::ConnectivityException& ex )
-		{
-			ROS_INFO_STREAM("tf connectivity error: " << ex.what());
-			return;
-		}
-		catch( tf::ExtrapolationException& ex )
-		{
-			ROS_INFO_STREAM("tf extrapolation error: " << ex.what());
-			return;
-		}
-	}
-	else
-	{
-		ROS_INFO_STREAM("tf not available between '" << frame_id_target_ << "' and '" << frame_id_sensor_ << "'");
-		return;
-	}
-
-	// get transform data
-	tf::Vector3& origin=tf_sensor_target_.getOrigin();
-	tf::Matrix3x3& orientation=tf_sensor_target_.getBasis();
-
 	// send transform data to the tweak publisher
-	if( 0>=write(pipe_fd_[1],&origin[0],4*sizeof(tfScalar)) )
+	if( _msg.poses.size() )
 	{
-		CAROTE_NODE_ABORT("write() error while tweaking");
-	}
-
-	if( 0>=write(pipe_fd_[1],&orientation[0],4*sizeof(tfScalar)) )
-	{
-		CAROTE_NODE_ABORT("write() error while tweaking");
-	}
-
-	if( 0>=write(pipe_fd_[1],&orientation[1],4*sizeof(tfScalar)) )
-	{
-		CAROTE_NODE_ABORT("write() error while tweaking");
-	}
-
-	if( 0>=write(pipe_fd_[1],&orientation[2],4*sizeof(tfScalar)) )
-	{
-		CAROTE_NODE_ABORT("write() error while tweaking");
+		if( 0>=write(pipe_fd_[1],&_msg.poses[0],sizeof(geometry_msgs::Pose)) )
+		{
+			CAROTE_NODE_ABORT("write() error while tweaking");
+		}
 	}
 }
 
 void carote::TweakTarget::publish(void)
 {
-	// retrieve and publish transform data
-	tf::Vector3 origin;
-	tf::Matrix3x3 orientation;
-	tf::Quaternion quaternion;
-	tf::Transform transform;
+	geometry_msgs::Pose pose;
 	tf::TransformBroadcaster tf_broadcaster;
+
+	// retrieve and publish transform data
 	while( ros::ok() )
 	{
-		// read origin
-		if( 0>=read(pipe_fd_[0],&origin[0],4*sizeof(tfScalar)) )
+		// read pose
+		if( 0>=read(pipe_fd_[0],&pose,sizeof(geometry_msgs::Pose)) )
 		{
 			break;
 		}
 
-		// read orientation data
-		if( 0>=read(pipe_fd_[0],&orientation[0],4*sizeof(tfScalar)) )
-		{
-			break;
-		}
-
-		// read orientation data
-		if( 0>=read(pipe_fd_[0],&orientation[1],4*sizeof(tfScalar)) )
-		{
-			break;
-		}
-
-		// read orientation data
-		if( 0>=read(pipe_fd_[0],&orientation[2],4*sizeof(tfScalar)) )
-		{
-			break;
-		}
-
-		// compute orientation quaternion
-		orientation.getRotation(quaternion);
-
-		// publish pose message
-		geometry_msgs::Pose pose;
-		pose.position.x=origin.getX();
-		pose.position.y=origin.getY();
-		pose.position.z=origin.getZ();
-		pose.orientation.x=quaternion.getX();
-		pose.orientation.y=quaternion.getY();
-		pose.orientation.z=quaternion.getZ();
-		pose.orientation.w=quaternion.getW();
-
+		// prepare pose message
 		geometry_msgs::PoseArray msg;
 		msg.header.stamp=ros::Time::now();
 		msg.header.frame_id=frame_id_sensor_;
 		msg.poses.push_back(pose);
+
+		// compute target transform
+		tf::Vector3 position(pose.position.x,pose.position.y,pose.position.z);
+		tf::Quaternion quaternion(pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w);
+		tf::Transform tf_sensor_target(quaternion,position);
+
+		// publish target transform with respect sensor
+		tf_broadcaster.sendTransform(tf::StampedTransform(tf_sensor_target,msg.header.stamp,msg.header.frame_id,frame_id_target_));
+
+		// publish pose message
 		publisher_.publish(msg);
-
-		// generate transformation object
-		transform.setOrigin(origin);
-		transform.setBasis(orientation);
-
-		// publish target transform with respect tip
-		tf_broadcaster.sendTransform(tf::StampedTransform(transform,msg.header.stamp,frame_id_sensor_,frame_id_target_));
 	}
 
 	// issues while receiving data through the pipe?
