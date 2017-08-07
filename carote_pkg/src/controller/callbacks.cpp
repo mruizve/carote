@@ -26,7 +26,7 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 			{
 				q_(i)=_msg.position[j];
 				qp_(i)=_msg.velocity[j];
-				//tau_(i)=_msg.effort[i]
+				tau_(i)=_msg.effort[i];
 				updated++;
 			}
 		}

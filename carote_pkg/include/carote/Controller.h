@@ -88,6 +88,7 @@ namespace carote
 			int states_flag_;   // joints states
 			KDL::JntArray q_;
 			KDL::JntArray qp_;
+			KDL::JntArray tau_;
 
 			int goal_flag_;     // goal pose
 			int operator_flag_; // goal pose parameters
