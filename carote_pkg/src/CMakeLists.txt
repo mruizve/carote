@@ -28,6 +28,15 @@ add_library( controller
 add_dependencies( controller carote_msgs_generate_messages_cpp )
 target_link_libraries( controller model ${catkin_LIBRARIES} )
 
+# control tools
+add_executable( sleep tools/home.cpp )
+add_dependencies( sleep carote_msgs_generate_messages_cpp )
+target_link_libraries( sleep controller ${catkin_LIBRARIES} )
+
+add_executable( wakeup tools/work.cpp )
+add_dependencies( wakeup carote_msgs_generate_messages_cpp )
+target_link_libraries( wakeup controller ${catkin_LIBRARIES} )
+
 # follower
 add_executable( follower follower/node.cpp follower/follower.cpp )
 add_dependencies( follower ${PROJECT_NAME}_gencfg carote_msgs_generate_messages_cpp )

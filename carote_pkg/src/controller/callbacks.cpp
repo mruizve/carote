@@ -5,6 +5,11 @@
 #include "carote/Controller.h"
 #include "carote/Utils.h"
 
+void carote::Controller::cbControl(const ros::TimerEvent& _event)
+{
+	ROS_WARN_STREAM("carote::Controller::cbControl() must NEVER be called");
+}
+
 void carote::Controller::cbOperator(const carote_msgs::OperatorStamped& _msg)
 {
 	// copy goal parameters

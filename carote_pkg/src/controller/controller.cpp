@@ -43,6 +43,11 @@ carote::Controller::~Controller(void)
 	}
 }
 
+void carote::Controller::clean(void)
+{
+	ROS_WARN_STREAM("carote::Controller::clean() should not be called (except in some tools)");
+}
+
 void carote::Controller::start(ros::Duration _period)
 {
 	// start internal timer

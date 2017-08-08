@@ -12,6 +12,9 @@ namespace carote
 	class Controller
 	{
 		public:
+			Controller(const std::string& _name);
+			~Controller(void);
+
 			// predefined robot poses
 			void home(void);
 			void work(void);
@@ -24,14 +27,11 @@ namespace carote
 			void stop(void);
 
 		protected:
-			Controller(const std::string& _name);
-			~Controller(void);
-
 			// control callbacks
-			virtual void cbControl(const ros::TimerEvent& _event)=0;
+			virtual void cbControl(const ros::TimerEvent& _event);
 
 			// erase any pending control command
-			virtual void clean(void)=0;
+			virtual void clean(void);
 
 			// arm and base control
 			void armPose(const KDL::JntArray& _q);
