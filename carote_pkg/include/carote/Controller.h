@@ -47,7 +47,6 @@ namespace carote
 			// initializations 
 			void initROS(void);        // publishers and advertisers
 			void initPoses(void);      // predefined poses (zero and home)
-			void initGoal(void);       // predefined goal pose and parameters
 
 			// predefined poses loader
 			void loadXMLPose(const std::string _param, KDL::JntArray& _q);
@@ -91,7 +90,8 @@ namespace carote
 			KDL::JntArray qp_;
 			KDL::JntArray tau_;
 
-			int operator_flag_; // goal pose parameters
+			int goal_flag_;     // goal pose and parameters
+			int operator_flag_;
 			carote_msgs::Operator goal_params_;
 			KDL::Frame goal_;
 

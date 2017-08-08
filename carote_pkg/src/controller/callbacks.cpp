@@ -84,8 +84,11 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 		this->getGoal();
 	}
 
-	// broadcast desired goal pose at the same rate of the target pose
-	tf::Transform tf_goal;
-	tf::transformKDLToTF(goal_,tf_goal);
-	tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_target_,frame_id_goal_));
+	if( goal_flag_ )
+	{
+		// broadcast desired goal pose at the same rate of the target pose
+		tf::Transform tf_goal;
+		tf::transformKDLToTF(goal_,tf_goal);
+		tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_target_,frame_id_goal_));
+	}
 }

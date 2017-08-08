@@ -1,21 +1,6 @@
 #include "carote/Controller.h"
 #include "carote/Utils.h"
 
-void carote::Controller::initGoal(void)
-{
-	// set goal parameters to default values
-	// (this should not be hard coded and should be, in some way, obtained from
-	// the operator parameters; unfortunately there's no time for ROS games now)
-	goal_params_.lambda=0.0;
-	goal_params_.phi=0.0;
-	goal_params_.rho=0.4;
-	goal_params_.z_lower=0.1;
-	goal_params_.z_upper=0.9;
-
-	// generate initial goal pose
-	this->getGoal();
-}
-
 void carote::Controller::getGoal(void)
 {
 	// compute the desired position in virtual target coordinates
@@ -46,6 +31,7 @@ void carote::Controller::getGoal(void)
 	goal_=KDL::Frame(R,t+target_.p); // base coordinates
 	goal_=target_.Inverse()*goal_;   // target coordinates
 
-	// clear goal parameters flag
+	// clear/set goal flags
+	goal_flag_=1;
 	operator_flag_=0;
 }
