@@ -21,6 +21,7 @@ add_library( controller
 	controller/callbacks.cpp
 	controller/commands.cpp
 	controller/controller.cpp
+	controller/goal.cpp
 	controller/ros.cpp
 	controller/poses.cpp
 )

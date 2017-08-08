@@ -7,7 +7,6 @@ carote::Controller::Controller(const std::string& _name)
 	name_(_name),
 	model_(NULL),
 	states_flag_(0),
-	goal_flag_(0),
 	operator_flag_(0),
 	target_flag_(0)
 {
@@ -31,6 +30,9 @@ carote::Controller::Controller(const std::string& _name)
 
 	// poses initialization
 	this->initPoses();
+
+	// goal initialization
+	this->initGoal();
 }
 
 carote::Controller::~Controller(void)
@@ -43,9 +45,6 @@ carote::Controller::~Controller(void)
 
 void carote::Controller::start(ros::Duration _period)
 {
-	// stop the robot
-	this->stop();
-
 	// start internal timer
 	timer_=node_.createTimer(_period,&Controller::cbControl,this);
 }

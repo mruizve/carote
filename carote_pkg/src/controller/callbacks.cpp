@@ -75,45 +75,12 @@ void carote::Controller::cbTarget(const geometry_msgs::PoseArray& _msg)
 	// if the operator have provided new parameters for the goal computation, then
 	if( operator_flag_ )
 	{
-		// compute the desired position in virtual target coordinates
-		KDL::Vector t;
-		t(0)=goal_params_.rho*cos(goal_params_.phi*M_PI/180.0)*cos(goal_params_.lambda*M_PI/180.0);
-		t(1)=goal_params_.rho*cos(goal_params_.phi*M_PI/180.0)*sin(goal_params_.lambda*M_PI/180.0);
-		t(2)=goal_params_.rho*sin(goal_params_.phi*M_PI/180.0);
-
-		// define the virtual target frame {z_target,cross(z_world,z_target),z_world}
-		// (we assume that z_target is properly normalized)
-		KDL::Vector x(target_.M.UnitZ()); x.Normalize();
-		KDL::Vector z(0.0,0.0,1.0);
-		KDL::Vector y=z*x; y.Normalize();
-		KDL::Rotation R(x,y,z);
-
-		// computed the displacement vector in base coordinates
-		t=R*t;
-
-		// compute the goal frame
-		z=-t; z.Normalize();
-		y=R.UnitZ()*z; y.Normalize();
-		x=y*z; z.Normalize();
-		R.UnitX(x);
-		R.UnitY(y);
-		R.UnitZ(z);
-
-		// generate the goal frame in target coordinates
-		goal_=KDL::Frame(R,t+target_.p); // base coordinates
-		goal_=target_.Inverse()*goal_;   // target coordinates
-
-		// clear/set corresponding flags
-		goal_flag_=1;
-		operator_flag_=0;
+		// compute goal and clear goal parameters flags
+		this->getGoal();
 	}
 
-	// if there is a goal defined, then
-	if( goal_flag_ )
-	{
-		// broadcast desired goal pose
-		tf::Transform tf_goal;
-		tf::transformKDLToTF(goal_,tf_goal);
-		tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_target_,frame_id_goal_));
-	}
+	// broadcast desired goal pose at the same rate of the target pose
+	tf::Transform tf_goal;
+	tf::transformKDLToTF(goal_,tf_goal);
+	tf_broadcaster.sendTransform(tf::StampedTransform(tf_goal,_msg.header.stamp,frame_id_target_,frame_id_goal_));
 }
