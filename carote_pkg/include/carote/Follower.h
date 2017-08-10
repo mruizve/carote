@@ -1,12 +1,11 @@
 #ifndef _CAROTE_FOLLOWER_H_
 #define _CAROTE_FOLLOWER_H_
 
+#include<deque>
 #include<ros/ros.h>
-#include<tf/tf.h>
 #include<dynamic_reconfigure/server.h>
 #include "carote/FollowerConfig.h"
 #include "carote/Controller.h"
-#include "carote/Utils.h"
 
 namespace carote
 {
