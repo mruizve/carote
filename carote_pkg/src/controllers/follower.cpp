@@ -60,7 +60,6 @@ inline void nonlinearRule(std::vector<double>& out, double dx, double vo, double
 
 void carote::Follower::cbControl(const ros::TimerEvent& _event)
 {
-
 	KDL::Twist u(KDL::Vector(0.0,0.0,0.0),KDL::Vector(0.0,0.0,0.0));
 
 	// if there is a control program defined, then
