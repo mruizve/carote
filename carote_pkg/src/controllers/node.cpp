@@ -1,7 +1,12 @@
 #include<signal.h>
 #include<ros/callback_queue.h>
 #include<ros/xmlrpc_manager.h>
-#include "carote/Follower.h"
+#ifdef FOLLOWER
+	#include "carote/Follower.h"
+#endif
+#ifdef POSITIONER
+	#include "carote/Positioner.h"
+#endif
 
 // signal-safe flag for whether shutdown is requested
 sig_atomic_t volatile g_shutdown_flag=0;
@@ -46,12 +51,17 @@ int main(int argc, char **argv)
 	ros::XMLRPCManager::instance()->bind("shutdown",shutdownXmlRpc);
 
 	// create the follower controller node
-	carote::Follower follower(ros::this_node::getName());
+	#ifdef FOLLOWER
+		carote::Follower controller(ros::this_node::getName());
+	#endif
+	#ifdef POSITIONER
+		carote::Positioner controller(ros::this_node::getName());
+	#endif
 
 	// initialize robot
 	//follower.work();
 	//ros::Duration(5.0).sleep();
-	follower.start(ros::Duration(1.0/50.0));
+	controller.start(ros::Duration(1.0/50.0));
 
 	// handle events with custom ros::spin() until a shutdown request is received
 	while( !g_shutdown_flag )
@@ -61,7 +71,7 @@ int main(int argc, char **argv)
 
 	// send robot to the home configuration
 	//follower.home();
-	follower.zero();
+	controller.zero();
 
 	// real shutdown
 	ros::shutdown();

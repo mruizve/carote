@@ -37,7 +37,13 @@ add_executable( wakeup tools/work.cpp )
 add_dependencies( wakeup carote_msgs_generate_messages_cpp )
 target_link_libraries( wakeup controller ${catkin_LIBRARIES} )
 
-# follower
-add_executable( follower follower/node.cpp follower/follower.cpp )
+# controllers
+add_executable( follower controllers/node.cpp controllers/follower.cpp )
 add_dependencies( follower ${PROJECT_NAME}_gencfg carote_msgs_generate_messages_cpp )
+target_compile_definitions( follower PRIVATE FOLLOWER=0 )
 target_link_libraries( follower controller ${catkin_LIBRARIES} )
+
+add_executable( positioner controllers/node.cpp controllers/positioner.cpp )
+add_dependencies( positioner ${PROJECT_NAME}_gencfg carote_msgs_generate_messages_cpp )
+target_compile_definitions( positioner PRIVATE POSITIONER=0 )
+target_link_libraries( positioner controller ${catkin_LIBRARIES} )
