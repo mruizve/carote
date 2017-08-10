@@ -88,16 +88,11 @@ void carote::Follower::cbControl(const ros::TimerEvent& _event)
 			CAROTE_NODE_ABORT("cbControl(): unexpected error from forward kinematics");
 		}
 
-		// coordinate axis
-		KDL::Vector x(1.0,0.0,0.0);
-		KDL::Vector y(0.0,1.0,0.0);
-		KDL::Vector z(0.0,0.0,1.0);
-
-
 		// get goal in base link coordinates
 		KDL::Frame goal=target_*goal_;
 
 		// compute errors
+		KDL::Vector z(0.0,0.0,1.0);
 		KDL::Vector r=goal.p-tip.p;
 		KDL::Vector Z_tip(tip.M.UnitZ()[0],tip.M.UnitZ()[1],0.0);
 		KDL::Vector Z_goal(goal.M.UnitZ()[0],goal.M.UnitZ()[1],0.0);
