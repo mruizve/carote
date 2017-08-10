@@ -30,7 +30,7 @@ void carote::Controller::armPose(const KDL::JntArray& _q)
 	pub_q_.publish(msg_q);
 }
 
-void carote::Controller::armSpeed(const KDL::JntArray& _qp)
+void carote::Controller::armVelocities(const KDL::JntArray& _qp)
 {
 	ros::Time tstamp=ros::Time::now();
 

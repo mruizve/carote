@@ -70,7 +70,7 @@ void carote::Controller::zero(void)
 	this->baseTwist(KDL::Twist::Zero());
 	
 	// stop the arm
-	this->armSpeed(KDL::JntArray(model_->getNrOfJoints()));
+	this->armVelocities(KDL::JntArray(model_->getNrOfJoints()));
 
 	// wait some time
 	ros::Duration(0.5).sleep();

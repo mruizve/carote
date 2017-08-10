@@ -35,7 +35,7 @@ namespace carote
 
 			// arm and base control
 			void armPose(const KDL::JntArray& _q);
-			void armSpeed(const KDL::JntArray& _q);
+			void armVelocities(const KDL::JntArray& _q);
 			void baseTwist(const KDL::Twist& _u);
 
 		private:
