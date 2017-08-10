@@ -18,119 +18,146 @@ carote::Follower::Follower(const std::string& _name)
 
 carote::Follower::~Follower(void)
 {
-/*
-	// if some one is listening, then
-	if( 0<pub_base_vel_.getNumSubscribers() )
-	{
-		// stop the robot
-		this->stop();
-	}
-*/
 }
 
 void carote::Follower::clean(void)
 {
-	ROS_WARN_STREAM("clean() not yet implemented!");
+	u_.clear();
 }
 
+inline void nonlinearRule(std::vector<double>& out, double dx, double vo, double v_lim, double dt, double eps)
+{
+	// this static control law if fully empirical. the rule resembles a passive
+	// electrical circuit charge and discharge phases, plus an additional
+	// non-linear modulation of the steady state control magnitude in terms of
+	// the error:
+	//
+	//           u(t)=uo+(gamma(e(t))*u_max-uo)*(1-exp(-alpha*t))
+	//
+	// where uo is the initial condition, gamma a symmetric, positive definite,
+	// monotonically increasing, nonlinear function with gamma(0)=0, e(t) is the
+	// error, u_max the maximum allowed control magnitude and alpha, the
+	// equivalent of the RC time constant, represents the temporal smoothing
+	// factor and should be -in general- a function of the control rate.
+
+	double alpha=0.0921/dt;
+	double v=0.0;
+	double tau=0.0;
+	double error=0.0;
+	double gamma=0.0;
+	double psi=fabs(error-dx);
+	for( ; psi>eps && 5.0>tau; )
+	{
+		gamma=(1.0-exp(-0.5*psi*psi/(100*eps*eps)));
+		v=vo+(sgn(dx)*gamma*v_lim-vo)*(1.0-exp(-alpha*tau));
+		error+=v*dt;
+		tau+=dt;
+		psi=fabs(error-dx);
+		out.push_back(v);
+	}
+}
 
 void carote::Follower::cbControl(const ros::TimerEvent& _event)
 {
-	ROS_WARN_STREAM("cbControl() not yet implemented!");
-	/*
-	// get next control command (platform velocity)
-	Eigen::Vector3d u;
-	if( !u_.empty() )
+
+	KDL::Twist u(KDL::Vector(0.0,0.0,0.0),KDL::Vector(0.0,0.0,0.0));
+
+	// if there is a control program defined, then
+	if( 0<u_.size() )
 	{
+		// get the next control command
 		u=u_.front();
+		u_.pop_front();
+	}
+
+	// send control command (if any) to the robot
+	this->baseTwist(u);
+
+	// if a new target frame has been obtained, then we have
+	// to re-plan the control program based on this new feedback
+	#define CP control_params_
+	if( target_flag_ && goal_flag_ )
+	{
+		// clear the current control program
 		u_.clear();
+
+		// get tip frame
+		KDL::Frame tip;
+		if( 0>model_->JntToCart(q_,tip) )
+		{
+			CAROTE_NODE_ABORT("cbControl(): unexpected error from forward kinematics");
+		}
+
+		// coordinate axis
+		KDL::Vector x(1.0,0.0,0.0);
+		KDL::Vector y(0.0,1.0,0.0);
+		KDL::Vector z(0.0,0.0,1.0);
+
+
+		// get goal in base link coordinates
+		KDL::Frame goal=target_*goal_;
+
+		// compute errors
+		KDL::Vector r=goal.p-tip.p;
+		KDL::Vector Z_tip(tip.M.UnitZ()[0],tip.M.UnitZ()[1],0.0);
+		KDL::Vector Z_goal(goal.M.UnitZ()[0],goal.M.UnitZ()[1],0.0);
+		double ew=acos(KDL::dot(Z_tip,Z_goal)/(Z_tip.Norm()*Z_goal.Norm()));
+		double sw=(0.0<KDL::dot(Z_tip*Z_goal,z))?1.0:-1.0;
+
+		// compute feed-forward compensation
+		double dt=1.0/CP.rate;
+		std::vector<double> xp;
+		std::vector<double> yp;
+		std::vector<double> w;
+		nonlinearRule(xp,r[0],u(0),CP.v,dt,CP.cartesian_error);
+		nonlinearRule(yp,r[1],u(1),CP.v,dt,CP.cartesian_error);
+		nonlinearRule(w,ew*sw,u(5),CP.w,dt,CP.angular_error);
+
+		// merge trajectories into a single twist command
+		const size_t length=std::max(xp.size(),std::max(yp.size(),w.size()));
+		double theta=0;
+		for( size_t i=0; length>i; i++ )
+		{
+			KDL::SetToZero(u);
+
+			// compute speed
+			if( xp.size()>i )
+			{
+				u(0)+= cos(theta)*xp[i];
+				u(1)+=-sin(theta)*xp[i];
+			}
+			if( yp.size()>i )
+			{
+				u(0)+= sin(theta)*yp[i];
+				u(1)+= cos(theta)*yp[i];
+			}
+
+			if( w.size()>i )
+			{
+				u(5)=w[i];
+				theta+=dt*w[i];
+			}
+			u_.push_back(u);
+		}
+
+		// clear the target flag
+		target_flag_=0;
 	}
-	else
-	{
-		u=Eigen::Vector3d::Zero();
-	}
-
-	// retrieve target state (using Eigen representation)
-	Eigen::Map<Eigen::Vector3d> p(&p_[0]);
-	p(0)=_msg.poses[0].position.x;
-	p(1)=_msg.poses[0].position.y;
-	p(2)=_msg.poses[0].position.z;
-
-	Eigen::Map<Eigen::Vector3d> v(&v_[0]);
-	v(0)=0.0; //_msg.twist.twist.linear.x;
-	v(1)=0.0; //_msg.twist.twist.linear.y;
-	v(2)=0.0; //_msg.twist.twist.linear.z;
-
-	// compute distance target distance to the sensor frame
-	double d=p.norm();
-
-	// get state respect params_.output_frame
-	p_=tf_.getBasis()*p_+tf_.getOrigin();
-	v_=tf_.getBasis()*v_;
-	v(0)=v(0)+u(0)-u(2)*p(1);
-	v(1)=v(1)+u(1)+u(2)*p(0);
-
-	ROS_WARN_STREAM(p.transpose());
-
-	// some algebraic stuff
-	Eigen::Vector3d x=Eigen::Vector3d::UnitX();
-
-	// compute linear velocity command
-	ROS_WARN_STREAM(d << " -- " << (params_.distance-d));
-	u(0)=-params_.Kp*sgn(params_.distance-d)*pow(params_.distance-d,2)-params_.Kv*v.dot(x);
-	u(0)=sgn(u(0))*std::min(params_.speed_max,fabs(u(0)));
-	
-	// compute angular velocity command
-	//double w=-params_.Kp*(
-
-	// ROS_WARN_STREAM("p: " << p.transpose());
-	// ROS_WARN_STREAM("v: " << v.transpose());
-	ROS_WARN_STREAM("u: " << u(0));
-
-	if( params_.enabled )
-	{
-		// send velocity command
-		geometry_msgs::Twist msg_control;
-		msg_control.linear.x=u(0);
-		msg_control.linear.y=0.0;
-		msg_control.linear.z=0.0;
-		msg_control.angular.x=0.0;
-		msg_control.angular.y=0.0;
-		msg_control.angular.z=0.0;
-		pub_base_vel_.publish(msg_control);
-	}
-	else
-	{
-		// stop the robot
-		this->stop();
-	}
-*/
+	#undef CP
 }
 
 void carote::Follower::cbReconfigure(carote::FollowerConfig& _config, uint32_t _level)
 {
 	// update parameters
-	params_=_config;
+	control_params_=_config;
 
-	if( params_.enabled )
+	if( control_params_.enabled )
 	{
-		ros::Duration period(1.0/params_.rate);
+		ros::Duration period(1.0/control_params_.rate);
 		this->start(period);
-		ros::Duration(1.0).sleep();
 	}
 	else
 	{
 		this->stop();
-		ros::Duration(1.0).sleep();
 	}
-/*
-	// stop the robot (old topic)
-	this->stop();
-
-	// update parameters
-	params_=config;
-
-	// enable controller
-	timer_=node_.createTimer(ros::Rate(params_.rate),&carote::Follower::output,this);
-*/
 }

@@ -26,13 +26,11 @@ namespace carote
 
 		protected:
 			// ros stuff: parameters handling through dynamic reconfigure 
-			carote::FollowerConfig params_;
+			carote::FollowerConfig control_params_;
 			dynamic_reconfigure::Server<carote::FollowerConfig> server_;
 
 			// output processing
-			tf::Vector3 p_; // target position
-			tf::Vector3 v_; // target velocity
-			std::deque<Eigen::Vector3d> u_; // control: [v_x, v_y, w]
+			std::deque<KDL::Twist> u_;
 	};
 }
 

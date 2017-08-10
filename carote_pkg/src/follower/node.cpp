@@ -49,7 +49,9 @@ int main(int argc, char **argv)
 	carote::Follower follower(ros::this_node::getName());
 
 	// initialize robot
-	follower.work();
+	//follower.work();
+	//ros::Duration(5.0).sleep();
+	follower.start(ros::Duration(1.0/50.0));
 
 	// handle events with custom ros::spin() until a shutdown request is received
 	while( !g_shutdown_flag )
@@ -58,7 +60,8 @@ int main(int argc, char **argv)
 	}
 
 	// send robot to the home configuration
-	follower.home();
+	//follower.home();
+	follower.zero();
 
 	// real shutdown
 	ros::shutdown();
