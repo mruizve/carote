@@ -33,7 +33,7 @@ inline void nonlinearRule(std::vector<double>& out, double dx, double vo, double
 	// non-linear modulation of the steady state control magnitude in terms of
 	// the error:
 	//
-	//           u(t)=uo+(gamma(e(t))*u_max-uo)*(1-exp(-alpha*t))
+	//       u(t)=uo+(sign*(e(t))*gamma(e(t))*u_max-uo)*(1-exp(-alpha*t))
 	//
 	// where uo is the initial condition, gamma a symmetric, positive definite,
 	// monotonically increasing, nonlinear function with gamma(0)=0, e(t) is the
