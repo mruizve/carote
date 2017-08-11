@@ -1,10 +1,10 @@
-#include<urdf/model.h>
 #include<kdl_parser/kdl_parser.hpp>
 #include "carote/Model.h"
 #include "carote/Utils.h"
 
 carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base, const std::string& _frame_id_tip)
 :
+    kdl_J_solver_(NULL),
     kdl_fp_solver_(NULL),
     kdl_iv_solver_(NULL),
 	kdl_ip_solver_(NULL)
@@ -30,28 +30,7 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
     }
 
 	// count number of non-fixed joints
-	nJoints_=0;
-    for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
-    {
-		KDL::Segment segment=kdl_chain_.getSegment(i);
-
-		// get URDF joint information
-		boost::shared_ptr<const urdf::Link> link=urdf_model.getLink(segment.getName());
-		if( !link )
-		{
-			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF link!?");
-		}
-		boost::shared_ptr<const urdf::Joint> joint=urdf_model.getJoint(link->parent_joint->name);
-		if( !joint )
-		{
-			CAROTE_NODE_ABORT("KDL segment '" << segment.getName() << "' without equivalent URDF parent_joint!?");
-		}
-
-		if( urdf::Joint::FIXED!=joint->type )
-		{
-			nJoints_++;
-		}
-	}
+	this->countNrOfJoints(urdf_model);
 
 	// resize joints values, velocities and limits arrays
 	q_lower_.resize(nJoints_);
@@ -83,9 +62,7 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
 			}
 			q_lower_(j)=joint->limits->lower;
 			q_upper_(j)=joint->limits->upper;
-
 			q_types_.push_back(joint->type);
-
 			q_names_.push_back(joint->name);
 
 			if( urdf::Joint::PRISMATIC==joint->type )
@@ -102,6 +79,9 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
 			j++;
 		}
 	}
+
+	// Jacobian solver
+	kdl_J_solver_=new KDL::ChainJntToJacSolver(kdl_chain_);
 
     // forward position and inverse velocity solvers
     // (needed by the geometric -inverse position- solver)
@@ -120,6 +100,11 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
 
 carote::Model::~Model(void)
 {
+	if( NULL!=kdl_J_solver_ )
+	{
+		delete kdl_J_solver_;
+	}
+
 	if( NULL!=kdl_fp_solver_ )
 	{
 		delete kdl_fp_solver_;
