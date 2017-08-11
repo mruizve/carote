@@ -28,7 +28,10 @@ namespace carote
 			carote::FollowerConfig control_params_;
 			dynamic_reconfigure::Server<carote::FollowerConfig> server_;
 
-			// output processing
+			// tip frame
+			KDL::Frame tip_;
+
+			// control program
 			std::deque<KDL::Twist> u_;
 	};
 }

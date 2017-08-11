@@ -77,8 +77,7 @@ void carote::Follower::cbControl(const ros::TimerEvent& _event)
 		u_.clear();
 
 		// get tip frame
-		KDL::Frame tip;
-		if( 0>model_->JntToCart(q_,tip) )
+		if( 0>model_->JntToCart(q_,tip_) )
 		{
 			CAROTE_NODE_ABORT("cbControl(): unexpected error from forward kinematics");
 		}
@@ -88,8 +87,8 @@ void carote::Follower::cbControl(const ros::TimerEvent& _event)
 
 		// compute errors
 		KDL::Vector z(0.0,0.0,1.0);
-		KDL::Vector r=goal.p-tip.p;
-		KDL::Vector Z_tip(tip.M.UnitZ()[0],tip.M.UnitZ()[1],0.0);
+		KDL::Vector r=goal.p-tip_.p;
+		KDL::Vector Z_tip(tip_.M.UnitZ()[0],tip_.M.UnitZ()[1],0.0);
 		KDL::Vector Z_goal(goal.M.UnitZ()[0],goal.M.UnitZ()[1],0.0);
 		double ew=acos(KDL::dot(Z_tip,Z_goal)/(Z_tip.Norm()*Z_goal.Norm()));
 		double sw=(0.0<KDL::dot(Z_tip*Z_goal,z))?1.0:-1.0;
