@@ -41,11 +41,6 @@ carote::Controller::~Controller(void)
 	}
 }
 
-void carote::Controller::clean(void)
-{
-	ROS_WARN_STREAM("carote::Controller::clean() should not be called (except in some tools)");
-}
-
 void carote::Controller::start(ros::Duration _period)
 {
 	// start internal timer
@@ -62,10 +57,6 @@ void carote::Controller::stop(void)
 }
 void carote::Controller::zero(void)
 {
-	// delete any residual control action
-	// (this is a pure virtual function depends on the implementation)
-	this->clean();
-
 	// stop the robot platform or base
 	this->baseTwist(KDL::Twist::Zero());
 	

@@ -21,11 +21,6 @@ carote::Follower::~Follower(void)
 {
 }
 
-void carote::Follower::clean(void)
-{
-	u_.clear();
-}
-
 inline void nonlinearRule(std::vector<double>& out, double dx, double vo, double v_lim, double dt, double eps)
 {
 	// this static control law if fully empirical. the rule resembles a passive
@@ -153,6 +148,10 @@ void carote::Follower::cbReconfigure(carote::FollowerConfig& _config, uint32_t _
 	}
 	else
 	{
+		// delete any residual control program
+		u_.clear();
+
+		// stop the robot motion and control action
 		this->stop();
 	}
 }

@@ -27,22 +27,16 @@ namespace carote
 			void stop(void);
 
 		protected:
-			// control callbacks
+			// input data and control callbacks
 			virtual void cbControl(const ros::TimerEvent& _event);
-
-			// erase any pending control command
-			virtual void clean(void);
+			virtual void cbOperator(const carote_msgs::OperatorStamped& _msg);
+			virtual void cbState(const sensor_msgs::JointState& _msg);
+			virtual void cbTarget(const geometry_msgs::PoseArray& _msg);
 
 			// arm and base control
 			void armPose(const KDL::JntArray& _q);
 			void armVelocities(const KDL::JntArray& _q);
 			void baseTwist(const KDL::Twist& _u);
-
-		private:
-			// input data callbacks
-			void cbOperator(const carote_msgs::OperatorStamped& _msg);
-			void cbState(const sensor_msgs::JointState& _msg);
-			void cbTarget(const geometry_msgs::PoseArray& _msg);
 
 			// initializations 
 			void initROS(void);        // publishers and advertisers
