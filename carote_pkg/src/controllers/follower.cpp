@@ -104,7 +104,7 @@ void carote::Follower::cbControl(const ros::TimerEvent& _event)
 		{
 			KDL::SetToZero(u);
 
-			// compute speed
+			// compute twist
 			if( xp.size()>i )
 			{
 				u(0)+= cos(theta)*xp[i];
