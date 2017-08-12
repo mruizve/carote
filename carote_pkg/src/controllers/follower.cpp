@@ -2,11 +2,6 @@
 #include "carote/Follower.h"
 #include "carote/Utils.h"
 
-template<typename T> int sgn(T val)
-{
-	return (T(0)<val)-(val<T(0));
-}
-
 carote::Follower::Follower(const std::string& _name)
 :
 	Controller(_name)
