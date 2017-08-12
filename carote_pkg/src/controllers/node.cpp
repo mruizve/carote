@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 	// initialize robot
 	//follower.work();
 	//ros::Duration(5.0).sleep();
-	controller.start(ros::Duration(1.0/50.0));
+	//controller.start(ros::Duration(1.0/50.0));
 
 	// handle events with custom ros::spin() until a shutdown request is received
 	while( !g_shutdown_flag )

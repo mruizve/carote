@@ -22,11 +22,11 @@ namespace carote
 			// stop robot motion
 			void zero(void);
 
+		protected:
 			// control enable/disable
 			void start(ros::Duration _period);
 			void stop(void);
 
-		protected:
 			// input data and control callbacks
 			virtual void cbControl(const ros::TimerEvent& _event);
 			virtual void cbOperator(const carote_msgs::OperatorStamped& _msg);
@@ -38,6 +38,7 @@ namespace carote
 			void armVelocities(const KDL::JntArray& _q);
 			void baseTwist(const KDL::Twist& _u);
 
+		private:
 			// initializations 
 			void initROS(void);        // publishers and advertisers
 			void initPoses(void);      // predefined poses (zero and home)
@@ -47,7 +48,7 @@ namespace carote
 
 			// goal generator based on operator commands
 			void getGoal(void);
-			
+		
 		private:
 			// ros stuff: node handle
 			std::string name_;
