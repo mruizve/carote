@@ -17,9 +17,8 @@ namespace carote
 
 		protected:
 			// callbacks
-//			void cbControl(const ros::TimerEvent& _event);
+			void cbControl(const ros::TimerEvent& _event);
 			void cbReconfigure(carote::PositionerConfig& _config, uint32_t _level);
-			void cbState(const sensor_msgs::JointState& _msg);
 			void cbTarget(const geometry_msgs::PoseArray& _msg);
 
 		protected:
