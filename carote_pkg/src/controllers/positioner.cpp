@@ -73,7 +73,6 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 		{
 			CAROTE_NODE_ABORT("cbControl(): unexpected error from forward kinematics");
 		}
-
 		// compute Jacobians of tip and RCM
 		if( 0>model_->JntToJac(q_,J_tip_) )
 		{
@@ -88,7 +87,7 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 		KDL::Frame goal=target_*goal_;
 		KDL::Frame rcm=tip_*rcm_;
 
-		// build the 'augmented' Jacobian, which comprises:
+		// build the task Jacobian, which comprises:
 		//   -- tip constraint along the z-axis,
 		//   -- RCM constraints along x and z axis.
 		// (we assume that q_(0)->"arm_joint_1" and q_(5)->"arm_joint_5")
@@ -107,19 +106,57 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 		// compute joints velocities
 		Eigen::Vector3d e;
 		e << e_tip[2],e_rcm[0],e_rcm[2];
-		double scale=( 10.0*CP.cartesian_error<e.norm() )? e.norm() : 10.0*CP.cartesian_error;
-		e=CP.v*e/scale;
 		Eigen::Vector3d qp=psiJ*e;
-		if( CP.qp<qp.lpNorm<Infinity>() )
-		{
-			qp=CP.qp*qp/qp.lpNorm<Infinity>();
-		}
+		qp=CP.qp*(1-exp(-e.norm()*e.norm()/(100*CP.cartesian_error*CP.cartesian_error)))*qp/qp.norm();
 
 		KDL::SetToZero(u);
 		u(1)=qp(0);
 		u(2)=qp(1);
 		u(3)=qp(2);
 		this->armVelocities(u);
+
+		KDL::Twist twist;
+		KDL::SetToZero(twist);
+		if( 0.0<CP.eta )
+		{
+			// manipulability Jacobian
+			J.block<1,3>(0,0)=J_tip_.data.block(0,1,1,3);
+			J.block<1,3>(1,0)=J_tip_.data.block(2,1,1,3);
+			J.block<1,3>(2,0)=J_tip_.data.block(4,1,1,3);
+			psiJ=pseudoInverse(J,CP.mu);
+
+			// manipulability test direction
+			Eigen::Vector3d qx=psiJ*Eigen::Vector3d::UnitX();
+			qx.normalize();
+
+			double dt=1.0/CP.rate;
+			KDL::JntArray q(model_->getNrOfJoints());
+
+			q(0)=q_(0);
+			q(1)=q_(1)-dt*qx(0);
+			q(2)=q_(2)-dt*qx(1);
+			q(3)=q_(3)-dt*qx(2);
+			q(4)=q_(4);
+			KDL::Jacobian J_tip_l(model_->getNrOfJoints());
+			if( 0>model_->JntToJac(q,J_tip_l) )
+			{
+				CAROTE_NODE_ABORT("cbControl(): unexpected error from Jacobian solver");
+			}
+			Eigen::Matrix3d J_l;
+			J_l.block<1,3>(0,0)=J_tip_l.data.block(0,1,1,3);
+			J_l.block<1,3>(1,0)=J_tip_l.data.block(2,1,1,3);
+			J_l.block<1,3>(2,0)=J_tip_l.data.block(4,1,1,3);
+
+			double mJ=sqrt(fabs((J*J.transpose()).determinant()));
+			double mJ_l=sqrt(fabs((J_l*J_l.transpose()).determinant()));
+			double D_l=(mJ_l-mJ)/dt;
+			if( 1e-5<fabs(D_l) )
+			{
+				twist(0)=sgn(D_l)*CP.eta*(1-exp(-(D_l*D_l)*5e5));
+				twist(0)+=J_l.block<1,3>(0,0)*qp;
+			}
+		}
+		this->baseTwist(twist);
 
 		// clear the states and target flag
 		states_flag_=0;
