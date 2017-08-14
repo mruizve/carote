@@ -68,10 +68,15 @@ void carote::Controller::initROS(void)
 		CAROTE_NODE_ABORT("missing param '/carote/frames/target' (must be defined at setup.launch)");
 	}
 
-	// get the name of platform or base reference frame
+	// get the name of tip reference frame
 	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
 	}
 
+	// get the name of wrist reference frame
+	if( !node_.getParam("/carote/frames/wrist",frame_id_wrist_) )
+	{
+		CAROTE_NODE_ABORT("missing param '/carote/frames/wrist' (must be defined at setup.launch)");
+	}
 }

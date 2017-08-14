@@ -75,6 +75,7 @@ namespace carote
 			std::string frame_id_goal_;
 			std::string frame_id_target_;
 			std::string frame_id_tip_;
+			std::string frame_id_wrist_;
 
 			// robot model
 			carote::Model *model_;
