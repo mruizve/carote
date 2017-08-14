@@ -30,7 +30,7 @@ namespace carote
 			void updateKinematics(void);
 
 			// compute the maximizing manipulability control law
-			double manipulability(const Eigen::Vector3d& _qp);
+			double manipulability(void);
 
 		protected:
 			// ros stuff: parameters handling through dynamic reconfigure 

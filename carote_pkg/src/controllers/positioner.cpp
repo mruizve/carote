@@ -21,73 +21,53 @@ carote::Positioner::~Positioner(void)
 {
 }
 
-double carote::Positioner::manipulability(const Eigen::Vector3d& _qp)
+double carote::Positioner::manipulability(void)
 {
-	if( 0.0<control_params_.v )
+	// get the current time step
+	double dt=1.0/control_params_.rate;
+
+	// manipulability Jacobian =  [ xp_tip; zp_tip; wy_tip ]
+	Eigen::Matrix3d J;
+	J.block<1,3>(0,0)=J_tip_.data.block(0,1,1,3);
+	J.block<1,3>(1,0)=J_tip_.data.block(2,1,1,3);
+	J.block<1,3>(2,0)=J_tip_.data.block(4,1,1,3);
+
+	// manipulability will be increased by a displacement along the x direction
+	// of the base link, therefore we need to map such direction in joints space
+	// to compute the directional derivative of the manipulability measure.
+	// (note that due all the constraints on the end effector and wrist, any
+	// displacement of the base -shoulder- will force a displacement of the elbow,
+	// that is, a movement along the null space of the task's Jacobian).
+	Eigen::Vector3d qpx=pinv(J,control_params_.mu)*Eigen::Vector3d::UnitX();
+	qpx.normalize();
+
+	// based on the compute direction qx, compute the state qx=q+dt*qpx
+	static KDL::JntArray qx(model_->getNrOfJoints());
+	qx(0)=q_(0);
+	qx(1)=q_(1)-dt*qpx(0);
+	qx(2)=q_(2)-dt*qpx(1);
+	qx(3)=q_(3)-dt*qpx(2);
+	qx(4)=q_(4);
+
+	// compute the tip Jacobian at qx
+	static KDL::Jacobian J_tip_x(model_->getNrOfJoints());
+	if( 0>model_->JntToJac(qx,J_tip_x) )
 	{
-		// get the current time step
-		double dt=1.0/control_params_.rate;
-
-		// manipulability Jacobian =  [ xp_tip; zp_tip; wy_tip ]
-		Eigen::Matrix3d J;
-		J.block<1,3>(0,0)=J_tip_.data.block(0,1,1,3);
-		J.block<1,3>(1,0)=J_tip_.data.block(2,1,1,3);
-		J.block<1,3>(2,0)=J_tip_.data.block(4,1,1,3);
-
-		// manipulability will be increased by a displacement along the x direction
-		// of the base link, therefore we need to map such direction in joints space
-		// to compute the directional derivative of the manipulability measure.
-		// (note that due all the constraints on the end effector and wrist, any
-		// displacement of the base -shoulder- will force a displacement of the elbow,
-		// that is, a movement along the null space of the task's Jacobian).
-		Eigen::Vector3d qpx=pinv(J,control_params_.mu)*Eigen::Vector3d::UnitX();
-		qpx.normalize();
-
-		// based on the compute direction qx, compute the state qx=q+dt*qpx
-		static KDL::JntArray qx(model_->getNrOfJoints());
-		qx(0)=q_(0);
-		qx(1)=q_(1)-dt*qpx(0);
-		qx(2)=q_(2)-dt*qpx(1);
-		qx(3)=q_(3)-dt*qpx(2);
-		qx(4)=q_(4);
-
-		// compute the tip Jacobian at qx
-		static KDL::Jacobian J_tip_x(model_->getNrOfJoints());
-		if( 0>model_->JntToJac(qx,J_tip_x) )
-		{
-			CAROTE_NODE_ABORT("Positioner::manipulability(): unexpected error from Jacobian solver");
-		}
-
-		// compute the manipulability Jacobian at qx
-		Eigen::Matrix3d Jx;
-		Jx.block<1,3>(0,0)=J_tip_x.data.block(0,1,1,3);
-		Jx.block<1,3>(1,0)=J_tip_x.data.block(2,1,1,3);
-		Jx.block<1,3>(2,0)=J_tip_x.data.block(4,1,1,3);
-
-		double m=sqrt(fabs((J*J.transpose()).determinant()));
-		double mx=sqrt(fabs((Jx*Jx.transpose()).determinant()));
-		double dm=(mx-m)/dt;
-
-		#define CP control_params_
-		double u;
-
-		// manipulability maximizing control
-		u=sgn(dm)*CP.v*(1-exp(-(dm*dm)*1e5));
-
-		// u + relative motion along x-axis due joint velocities
-		u=u+(J*_qp)(0);
-
-		// saturation
-		if( CP.v<fabs(u) )
-		{
-			u=sgn(u)*CP.v;
-		}
-
-		return u;
-		#undef CP
+		CAROTE_NODE_ABORT("Positioner::manipulability(): unexpected error from Jacobian solver");
 	}
 
-	return 0.0;
+	// compute the manipulability Jacobian at qx
+	Eigen::Matrix3d Jx;
+	Jx.block<1,3>(0,0)=J_tip_x.data.block(0,1,1,3);
+	Jx.block<1,3>(1,0)=J_tip_x.data.block(2,1,1,3);
+	Jx.block<1,3>(2,0)=J_tip_x.data.block(4,1,1,3);
+
+	double m=sqrt(fabs((J*J.transpose()).determinant()));
+	double mx=sqrt(fabs((Jx*Jx.transpose()).determinant()));
+	double dm=(mx-m)/dt;
+
+	// manipulability maximizing control (in base velocity units)
+	return sgn(dm)*control_params_.v*(1-exp(-pow(10*dm/control_params_.eps,2)));
 }
 
 void carote::Positioner::updateStates(const KDL::JntArray& _u)
@@ -216,11 +196,21 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	// compute the manipulability maximizing control (base velocity along x)
 	// (the input parameter is to compute the relative motion along the x axis
 	// between base link and the tip produced by the task control law)
-	u_base(0)=0.5*this->manipulability(qp);
+	double um=0.5*this->manipulability();
+
+	// map manipulability value to the joints space (from base velocities space)
+	um=control_params_.qp*um/control_params_.v;
 
 	// update joints velocities to compensate base movement
 	// (note that the base movement is only half of the desired velocity)
-	qp=qp-u_base(0)*psiJ*Eigen::Vector3d::UnitY();
+	Eigen::Vector3d vo,vf;
+	vo=J*qp;
+	qp=qp-um*psiJ*Eigen::Vector3d::UnitY();
+	vf=J*qp;
+
+	// apply to the base the predicted velocity variation of the RCM along the
+	// x-direction of the base reference frame
+	u_base(0)=vo(1)-vf(1);
 
 	// send velocity commands
 	u_arm(1)=qp(0);
