@@ -207,7 +207,7 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 
 	// compute joints velocities
 	Eigen::Vector3d qp=psiJ*e;
-	qp=control_params_.qp*(1-exp(-e.norm()*e.norm()/(100*control_params_.eps*control_params_.eps)))*qp/qp.norm();
+	qp=control_params_.qp*(1-exp(-pow(0.1*e.norm()/control_params_.eps,2)))*qp/qp.norm();
 
 	// clear previous control commands
 	KDL::SetToZero(u_base);
