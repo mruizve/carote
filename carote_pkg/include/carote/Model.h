@@ -17,8 +17,8 @@ namespace carote
 
 			// geometry
 			int getNrOfJoints(void) const;
-			int JntToJac(KDL::JntArray& _q, KDL::Jacobian& _J) const;
-			int JntToCart(KDL::JntArray& _q, KDL::Frame& _f) const;
+			int JntToJac(KDL::JntArray& _q, KDL::Jacobian& _J, int _segmentNR=-1) const;
+			int JntToCart(KDL::JntArray& _q, KDL::Frame& _f, int _segmentNR=-1) const;
 
 			// chain
 			const KDL::Chain& getChain(void) const;
