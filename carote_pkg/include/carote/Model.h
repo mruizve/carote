@@ -22,6 +22,7 @@ namespace carote
 
 			// chain
 			const KDL::Chain& getChain(void) const;
+			int getSegmentIndex(const std::string& _name) const;
 
 			// joints data
 			const std::string& getJointName(int i) const;

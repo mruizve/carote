@@ -10,8 +10,3 @@ int carote::Model::JntToJac(KDL::JntArray& _q, KDL::Jacobian& _J) const
 {
 	return kdl_J_solver_->JntToJac(_q,_J);
 }
-
-const KDL::Chain& carote::Model::getChain(void) const
-{
-	return kdl_chain_;
-}
