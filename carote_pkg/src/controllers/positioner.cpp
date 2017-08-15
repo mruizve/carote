@@ -4,21 +4,31 @@
 
 carote::Positioner::Positioner(const std::string& _name)
 :
-	Controller(_name)
+	Controller(_name),
+	kdl_J_solver_(NULL)
 {
 	// ros stuff: dynamic reconfiguration of controller parameters
 	dynamic_reconfigure::Server<carote::PositionerConfig>::CallbackType f;
 	f=boost::bind(&carote::Positioner::cbReconfigure,this,_1,_2);
 	server_.setCallback(f);
 
+	// ros stuff: get the name of shoulder reference frame
+	if( !this->node().getParam("/carote/frames/shoulder",frame_id_shoulder_) )
+	{
+		CAROTE_NODE_ABORT("missing param '/carote/frames/shoulder' (must be defined at setup.launch)");
+	}
+
 	// initialize Jacobians
 	J_rcm_.resize(model_->getNrOfJoints());
 	J_tip_.resize(model_->getNrOfJoints());
-	J_wrist_.resize(model_->getNrOfJoints());
 }
 
 carote::Positioner::~Positioner(void)
 {
+	if( NULL!=kdl_J_solver_)
+	{
+		delete kdl_J_solver_;
+	}
 }
 
 double carote::Positioner::manipulability(void)
@@ -41,7 +51,7 @@ double carote::Positioner::manipulability(void)
 	Eigen::Vector3d qpx=pinv(J,control_params_.mu)*Eigen::Vector3d::UnitX();
 	qpx.normalize();
 
-	// based on the compute direction qx, compute the state qx=q+dt*qpx
+	// based on the computed direction qx, compute the state qx=q+dt*qpx
 	static KDL::JntArray qx(model_->getNrOfJoints());
 	qx(0)=q_(0);
 	qx(1)=q_(1)-dt*qpx(0);
@@ -62,12 +72,21 @@ double carote::Positioner::manipulability(void)
 	Jx.block<1,3>(1,0)=J_tip_x.data.block(2,1,1,3);
 	Jx.block<1,3>(2,0)=J_tip_x.data.block(4,1,1,3);
 
+	// compute the manipulability measure at q and qx
 	double m=sqrt(fabs((J*J.transpose()).determinant()));
 	double mx=sqrt(fabs((Jx*Jx.transpose()).determinant()));
-	double dm=(mx-m)/dt;
+	return (mx-m)/dt;
+}
 
-	// manipulability maximizing control (in base velocity units)
-	return sgn(dm)*control_params_.v*(1-exp(-pow(10*dm/control_params_.eps,2)));
+double carote::Positioner::selfcollision(void)
+{
+	double d=((target_*goal_).p-shoulder_.p).Norm();
+	if( control_params_.d>=d )
+	{
+		return (1.0/d-1.0/control_params_.d)/(d*d);
+	}
+
+	return 0.0;
 }
 
 void carote::Positioner::updateStates(const KDL::JntArray& _u)
@@ -114,29 +133,20 @@ void carote::Positioner::updateTarget(const KDL::Twist& _u)
 
 void carote::Positioner::updateKinematics(void)
 {
-	// number of the wrist segment inside the robot model (chain)
-	static int wristNR=model_->getSegmentIndex(frame_id_wrist_.substr(1));
+	// number of the shoulder segment inside the robot model (chain)
+	static int shoulderNR=model_->getSegmentIndex(frame_id_shoulder_.substr(1));
 
-	// get tip and wrist frame using forward kinematics
-	if( 0>model_->JntToCart(q_,tip_) || 0>model_->JntToCart(q_,wrist_,wristNR) )
+	// get tip and shoulder frames using forward kinematics
+	if( 0>model_->JntToCart(q_,tip_) || 0>model_->JntToCart(q_,shoulder_,shoulderNR) )
 	{
 		CAROTE_NODE_ABORT("Positioner::cbControl(): unexpected error from forward kinematics");
 	}
 
-	// normalized distance between tip and RCM
-	double rho=goal_params_.rho/(tip_.p-wrist_.p).Norm();
-
-	// get RCM frame in base link coordinates
-	rcm_=KDL::Frame(tip_.M,tip_.p+(tip_.p-wrist_.p)*rho);
-
-	// get Jacobians of tip and wrist
-	if( 0>model_->JntToJac(q_,J_tip_) || 0>model_->JntToJac(q_,J_wrist_,wristNR))
+	// compute Jacobians of tip and RCM
+	if( 0>model_->JntToJac(q_,J_tip_) || 0>kdl_J_solver_->JntToJac(q_,J_rcm_) )
 	{
 		CAROTE_NODE_ABORT("Positioner::cbControl(): unexpected error from Jacobian solver");
 	}
-
-	// compute RCM Jacobian
-	J_rcm_.data=J_tip_.data+(J_tip_.data-J_wrist_.data)*rho;
 }
 
 void carote::Positioner::cbControl(const ros::TimerEvent& _event)
@@ -178,10 +188,13 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	// compute the pseudo-inverse of the task Jacobian
 	Eigen::Matrix3d psiJ=pinv(J,control_params_.mu);
 
-	// get goal frame in base link coordinates and compute error
+	// get goal and RCM frames in base link coordinates
 	KDL::Frame goal=target_*goal_;
+	KDL::Frame rcm=tip_*rcm_;
+
+	// compute error
 	KDL::Vector e_tip=goal.p-tip_.p;
-	KDL::Vector e_rcm=target_.p-rcm_.p;
+	KDL::Vector e_rcm=target_.p-rcm.p;
 	Eigen::Vector3d e;
 	e << e_tip[2],e_rcm[0],e_rcm[2];
 
@@ -193,24 +206,48 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	KDL::SetToZero(u_base);
 	KDL::SetToZero(u_arm);
 
-	// compute the manipulability maximizing control (base velocity along x)
-	// (the input parameter is to compute the relative motion along the x axis
-	// between base link and the tip produced by the task control law)
-	double um=0.5*this->manipulability();
+	// get the manipulability maximizing direction (base velocity along x)
+	// (note that this is proportional to the relative motion between the tip
+	// and the base (i.e., shoulder)
+	double um=this->manipulability();
 
-	// map manipulability value to the joints space (from base velocities space)
-	um=control_params_.qp*um/control_params_.v;
+	// manipulability maximizing control (in joint velocity units)
+	um=sgn(um)*control_params_.qp*(1-exp(-pow(25*um/control_params_.eps,2)));
 
-	// update joints velocities to compensate base movement
-	// (note that the base movement is only half of the desired velocity)
-	Eigen::Vector3d vo,vf;
-	vo=J*qp;
-	qp=qp-um*psiJ*Eigen::Vector3d::UnitY();
-	vf=J*qp;
+	// get the self-collision potential field value
+	double uc=this->selfcollision();
 
-	// apply to the base the predicted velocity variation of the RCM along the
-	// x-direction of the base reference frame
-	u_base(0)=vo(1)-vf(1);
+	// self-collision avoidance maximizing control (in joint velocity units)
+	uc=-control_params_.qp*(1-exp(-pow(uc/25.0,2)));
+
+	// compute the desired velocity profile for task error minimization
+	Eigen::Vector3d vo=J*qp;
+
+	// update joints velocities (note that the induced tip motion is only half
+	// of the desired relative velocity, the other half will be applied to the
+	// base to have a symmetric motion and compensation)
+	qp=qp-(um+uc)*psiJ*Eigen::Vector3d::UnitY();
+
+	// compute the perturbed velocity profile after the introduction of the
+	// manipulability and self-collision control terms
+	Eigen::Vector3d vf=J*qp;
+
+	// apply joints saturation
+	Eigen::Vector3d ve=Eigen::Vector3d::Zero();
+	if( control_params_.qp<qp.lpNorm<Eigen::Infinity>() )
+	{
+		qp(0)=(control_params_.qp<qp(0))? control_params_.qp : qp(0);
+		qp(1)=(control_params_.qp<qp(1))? control_params_.qp : qp(1);
+		qp(2)=(control_params_.qp<qp(2))? control_params_.qp : qp(2);
+
+		// recompute the perturbed velocity profile after saturation
+		ve=vf-J*qp;
+	}
+
+	// apply to the base the predicted velocity variation of the RCM (or tip)
+	// along the x-direction of the base reference (derived from the control
+	// terms and subsequent joint velocities saturation (if any)
+	u_base(0)=vo(1)-vf(1)+ve(1);
 
 	// send velocity commands
 	u_arm(1)=qp(0);
@@ -234,5 +271,36 @@ void carote::Positioner::cbReconfigure(carote::PositionerConfig& _config, uint32
 	{
 		// stop the robot motion and control action
 		this->stop();
+	}
+}
+
+void carote::Positioner::cbTarget(const geometry_msgs::PoseArray& _msg)
+{
+	// retrieve current state
+	int flag=operator_flag_;
+
+	// call the base controller method
+	Controller::cbTarget(_msg);
+
+	// generate the kinematic chain with the virtual RCM segment
+	if( flag )
+	{
+		// get the robot the kinematics chain
+		KDL::Chain kdl_chain(model_->getChain());
+
+		// compute the RCM frame with respect the tip frame
+		rcm_=KDL::Frame(KDL::Vector(0.0,0.0,goal_params_.rho));
+
+		// add RCM segment to the kinematic chain
+		KDL::Joint joint(KDL::Joint::None);
+		KDL::Segment segment(joint,rcm_);
+		kdl_chain.addSegment(segment);
+
+		// (re)create the Jacobian solver
+		if( NULL!=kdl_J_solver_)
+		{
+			delete kdl_J_solver_;
+		}
+		kdl_J_solver_=new KDL::ChainJntToJacSolver(kdl_chain);
 	}
 }

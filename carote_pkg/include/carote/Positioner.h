@@ -19,6 +19,7 @@ namespace carote
 			// callbacks
 			void cbControl(const ros::TimerEvent& _event);
 			void cbReconfigure(carote::PositionerConfig& _config, uint32_t _level);
+			void cbTarget(const geometry_msgs::PoseArray& _msg);
 
 		private:
 			// when no feedback is available update robot
@@ -32,18 +33,24 @@ namespace carote
 			// compute the maximizing manipulability control law
 			double manipulability(void);
 
+			// compute the self collision potential field
+			double selfcollision(void);
+
 		protected:
 			// ros stuff: parameters handling through dynamic reconfigure 
 			carote::PositionerConfig control_params_;
 			dynamic_reconfigure::Server<carote::PositionerConfig> server_;
 
+			// ros stuff: frames ids
+			std::string frame_id_shoulder_;
+
 			// RCM, tip and wrist frames and Jacobians
 			KDL::Frame rcm_;
 			KDL::Frame tip_;
-			KDL::Frame wrist_;
+			KDL::Frame shoulder_;
 			KDL::Jacobian J_rcm_;
 			KDL::Jacobian J_tip_;
-			KDL::Jacobian J_wrist_;
+			KDL::ChainJntToJacSolver *kdl_J_solver_;
 	};
 }
 
