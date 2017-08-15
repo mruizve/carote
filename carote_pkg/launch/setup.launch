@@ -6,7 +6,7 @@
 		<param name="frames/goal" type="str" value="/goal" />
 		<param name="frames/target" type="str" value="/target" />
 		<param name="frames/tip" type="str" value="/gripper_palm_link" />
-		<param name="frames/wrist" type="str" value="/arm_link_5" />
+		<param name="frames/shoulder" type="str" value="/arm_link_3" />
 		<param name="frames/sensor" type="str" value="/camera_rgb_optical_frame" />
 
 		<!-- general topics -->
