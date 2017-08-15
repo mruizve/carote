@@ -4,6 +4,11 @@
 #include "carote/Controller.h"
 #include "carote/Utils.h"
 
+const ros::NodeHandle& carote::Controller::node(void) const
+{
+	return node_;
+}
+
 void carote::Controller::initROS(void)
 {
 	std::string strpar;
@@ -72,11 +77,5 @@ void carote::Controller::initROS(void)
 	if( !node_.getParam("/carote/frames/tip",frame_id_tip_) )
 	{
 		CAROTE_NODE_ABORT("missing param '/carote/frames/tip' (must be defined at setup.launch)");
-	}
-
-	// get the name of wrist reference frame
-	if( !node_.getParam("/carote/frames/wrist",frame_id_wrist_) )
-	{
-		CAROTE_NODE_ABORT("missing param '/carote/frames/wrist' (must be defined at setup.launch)");
 	}
 }
