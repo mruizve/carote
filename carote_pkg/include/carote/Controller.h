@@ -41,6 +41,10 @@ namespace carote
 			// reference to the ros node
 			const ros::NodeHandle& node(void) const;
 
+			// reference to the predefined poses
+			const KDL::JntArray& getHomePose(void) const;
+			const KDL::JntArray& getWorkPose(void) const;
+
 		private:
 			// initializations 
 			void initROS(void);        // publishers and advertisers

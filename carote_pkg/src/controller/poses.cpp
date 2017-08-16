@@ -86,3 +86,13 @@ void carote::Controller::work(void)
 	// wait some time
 	ros::Duration(0.5).sleep();
 }
+
+const KDL::JntArray& carote::Controller::getHomePose(void) const
+{
+	return this->q_home_;
+}
+
+const KDL::JntArray& carote::Controller::getWorkPose(void) const
+{
+	return this->q_work_;
+}
