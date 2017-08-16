@@ -54,9 +54,9 @@ double carote::Positioner::manipulability(void)
 	// based on the computed direction qx, compute the state qx=q+dt*qpx
 	static KDL::JntArray qx(model_->getNrOfJoints());
 	qx(0)=q_(0);
-	qx(1)=q_(1)-dt*qpx(0);
-	qx(2)=q_(2)-dt*qpx(1);
-	qx(3)=q_(3)-dt*qpx(2);
+	qx(1)=q_(1)+dt*qpx(0);
+	qx(2)=q_(2)+dt*qpx(1);
+	qx(3)=q_(3)+dt*qpx(2);
 	qx(4)=q_(4);
 
 	// compute the tip Jacobian at qx
@@ -206,9 +206,8 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	KDL::SetToZero(u_base);
 	KDL::SetToZero(u_arm);
 
-	// get the manipulability maximizing direction (base velocity along x)
-	// (note that this is proportional to the relative motion between the tip
-	// and the base (i.e., shoulder)
+	// get the manipulability measure, which should be proportional to the
+	// relative motion between the tip and the base (i.e., shoulder)
 	double um=this->manipulability();
 
 	// manipulability maximizing control (in joint velocity units)
@@ -217,42 +216,44 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	// get the self-collision potential field value
 	double uc=this->selfcollision();
 
-	// self-collision avoidance maximizing control (in joint velocity units)
-	uc=-control_params_.qp*(1-exp(-pow(uc/25.0,2)));
+	// self-collision avoidance control (in joint velocity units)
+	uc=control_params_.qp*(1-exp(-pow(uc/25.0,2)));
+
+	// generate the null-space of the task along the z-axis
+	Eigen::Matrix<double,2,3> Jz;
+	Jz.block<1,3>(0,0)=J_tip_.data.block(2,1,1,3);
+	Jz.block<1,3>(1,0)=J_rcm_.data.block(2,1,1,3);
+	Eigen::Matrix<double,3,2> psiJz=pinv(Jz,control_params_.mu);
 
 	// compute the desired velocity profile for task error minimization
 	Eigen::Vector3d vo=J*qp;
 
-	// update joints velocities (note that the induced tip motion is only half
-	// of the desired relative velocity, the other half will be applied to the
-	// base to have a symmetric motion and compensation)
-	qp=qp-(um+uc)*psiJ*Eigen::Vector3d::UnitY();
+	// update joints velocities with the manipulability and self-collision terms
+	// (projected to the null-space of the task's sub-Jacobian related to the z-axis)
+	qp=qp+(um+uc)*(Eigen::Matrix3d::Identity()-psiJz*Jz)*psiJ*Eigen::Vector3d::UnitY();
 
-	// compute the perturbed velocity profile after the introduction of the
-	// manipulability and self-collision control terms
+	// compute the task's velocities after the addition of the control terms
 	Eigen::Vector3d vf=J*qp;
 
-	// apply joints saturation
+	// apply joints velocities saturation
 	Eigen::Vector3d ve=Eigen::Vector3d::Zero();
 	if( control_params_.qp<qp.lpNorm<Eigen::Infinity>() )
 	{
-		qp(0)=(control_params_.qp<qp(0))? control_params_.qp : qp(0);
-		qp(1)=(control_params_.qp<qp(1))? control_params_.qp : qp(1);
-		qp(2)=(control_params_.qp<qp(2))? control_params_.qp : qp(2);
+		qp=control_params_.qp*qp/qp.lpNorm<Eigen::Infinity>();
 
 		// recompute the perturbed velocity profile after saturation
 		ve=vf-J*qp;
 	}
 
-	// apply to the base the predicted velocity variation of the RCM (or tip)
-	// along the x-direction of the base reference (derived from the control
-	// terms and subsequent joint velocities saturation (if any)
-	u_base(0)=vo(1)-vf(1)+ve(1);
-
-	// send velocity commands
+	// update arm and base velocity commands, applying to the base the predicted
+	// velocity variation of the RCM (or tip) -along the x-direction of the base
+	// reference- due the redundancy control terms and joints speeds saturation
 	u_arm(1)=qp(0);
 	u_arm(2)=qp(1);
 	u_arm(3)=qp(2);
+	u_base(0)=vo(1)-vf(1)+ve(1);
+
+	// send velocity commands
 	this->armVelocities(u_arm);
 	this->baseTwist(u_base);
 }
