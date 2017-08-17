@@ -33,49 +33,54 @@ carote::Positioner::~Positioner(void)
 
 double carote::Positioner::manipulability(void)
 {
-	// get the current time step
-	double dt=1.0/control_params_.rate;
+	// get the step size proportional to the time step and maximum joints velocities
+	double h=control_params_.qp/control_params_.rate;
 
-	// manipulability Jacobian =  [ xp_tip; zp_tip; wy_tip ]
+	// compute the manipulability Jacobian =[ xp_tip; zp_tip; wy_tip ]
 	Eigen::Matrix3d J;
 	J.block<1,3>(0,0)=J_tip_.data.block(0,1,1,3);
 	J.block<1,3>(1,0)=J_tip_.data.block(2,1,1,3);
 	J.block<1,3>(2,0)=J_tip_.data.block(4,1,1,3);
 
-	// manipulability will be increased by a displacement along the x direction
-	// of the base link, therefore we need to map such direction in joints space
-	// to compute the directional derivative of the manipulability measure.
-	// (note that due all the constraints on the end effector and wrist, any
-	// displacement of the base -shoulder- will force a displacement of the elbow,
-	// that is, a movement along the null space of the task's Jacobian).
-	Eigen::Vector3d qpx=pinv(J,control_params_.mu)*Eigen::Vector3d::UnitX();
-	qpx.normalize();
+	// compute the pseudo-inverse of the manipulability Jacobian
+	Eigen::Matrix3d psiJ=pinv(J,control_params_.mu);
 
-	// based on the computed direction qx, compute the state qx=q+dt*qpx
-	static KDL::JntArray qx(model_->getNrOfJoints());
-	qx(0)=q_(0);
-	qx(1)=q_(1)+dt*qpx(0);
-	qx(2)=q_(2)+dt*qpx(1);
-	qx(3)=q_(3)+dt*qpx(2);
-	qx(4)=q_(4);
+	// determine the joints space direction associated to a displacement along
+	// the x-axis of the sagittal reference frame
+	Eigen::Vector3d qpx=psiJ*Eigen::Vector3d::UnitX();
 
-	// compute the tip Jacobian at qx
-	static KDL::Jacobian J_tip_x(model_->getNrOfJoints());
-	if( 0>model_->JntToJac(qx,J_tip_x) )
+	// approximate numerically the directional derivative of the manipulability
+	// along such direction (using central difference)
+	KDL::JntArray ql(model_->getNrOfJoints());
+	KDL::JntArray qr(model_->getNrOfJoints());
+	KDL::Jacobian J_tip_l(model_->getNrOfJoints());
+	KDL::Jacobian J_tip_r(model_->getNrOfJoints());
+
+	ql=q_; ql(1)-=h*qpx(0); ql(2)-=h*qpx(1); ql(3)-=h*qpx(2);
+	qr=q_; qr(1)+=h*qpx(0); qr(2)+=h*qpx(1); qr(3)+=h*qpx(2);
+
+	// compute the tip Jacobian at nearby states
+	if( 0>model_->JntToJac(ql,J_tip_l) || 0>model_->JntToJac(qr,J_tip_r) )
 	{
 		CAROTE_NODE_ABORT("Positioner::manipulability(): unexpected error from Jacobian solver");
 	}
 
-	// compute the manipulability Jacobian at qx
-	Eigen::Matrix3d Jx;
-	Jx.block<1,3>(0,0)=J_tip_x.data.block(0,1,1,3);
-	Jx.block<1,3>(1,0)=J_tip_x.data.block(2,1,1,3);
-	Jx.block<1,3>(2,0)=J_tip_x.data.block(4,1,1,3);
+	// compute the manipulability Jacobians:
+	// [ xp_tip; zp_tip; wy_tip ] = J_manipulability * qp
+	Eigen::Matrix3d Jl;
+	Jl.block<1,3>(0,0)=J_tip_l.data.block(0,1,1,3);
+	Jl.block<1,3>(1,0)=J_tip_l.data.block(2,1,1,3);
+	Jl.block<1,3>(2,0)=J_tip_l.data.block(4,1,1,3);
 
-	// compute the manipulability measure at q and qx
-	double m=sqrt(fabs((J*J.transpose()).determinant()));
-	double mx=sqrt(fabs((Jx*Jx.transpose()).determinant()));
-	return (mx-m)/dt;
+	Eigen::Matrix3d Jr;
+	Jr.block<1,3>(0,0)=J_tip_r.data.block(0,1,1,3);
+	Jr.block<1,3>(1,0)=J_tip_r.data.block(2,1,1,3);
+	Jr.block<1,3>(2,0)=J_tip_r.data.block(4,1,1,3);
+
+	// approximate manipulability gradient by center difference
+	double ml=sqrt(fabs((Jl*Jl.transpose()).determinant()));
+	double mr=sqrt(fabs((Jr*Jr.transpose()).determinant()));
+	return (mr-ml)/(2.0*h);
 }
 
 double carote::Positioner::selfcollision(void)
@@ -176,9 +181,29 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	// compute RCM, tip and wrist frames and Jacobians
 	this->updateKinematics();
 
+	// get goal and RCM frames in base link coordinates
+	KDL::Frame goal=target_*goal_;
+	KDL::Frame rcm=tip_*rcm_;
+
+	// compute sagittal frame
+	KDL::Vector Z(0.0,0.0,1.0);
+	KDL::Vector Y(shoulder_.M.UnitY()); Y.Normalize();
+	KDL::Vector X(Y*Z); X.Normalize();
+	KDL::Frame sagittal(KDL::Rotation(X,Y,Z),tip_.p);
+
+	// compute errors in sagittal coordinates
+	KDL::Vector e_tip=sagittal.M.Inverse(goal.p-tip_.p);
+	KDL::Vector e_rcm=sagittal.M.Inverse(target_.p-rcm.p);
+	Eigen::Vector3d e;
+	e << e_tip[2],e_rcm[0],e_rcm[2];
+
+	// change Jacobians base using the orientation of the sagittal frame
+	J_tip_.changeBase(sagittal.M.Inverse());
+	J_rcm_.changeBase(sagittal.M.Inverse());
+
 	// build the task Jacobian, which comprises:
 	//   -- tip constraint along the z-axis,
-	//   -- RCM constraints along x and z axis.
+	//   -- RCM constraint along x and z axis.
 	// (we assume that q_(0)->"arm_joint_1" and q_(5)->"arm_joint_5")
 	Eigen::Matrix3d J;
 	J.block<1,3>(0,0)=J_tip_.data.block(2,1,1,3);
@@ -187,16 +212,6 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 
 	// compute the pseudo-inverse of the task Jacobian
 	Eigen::Matrix3d psiJ=pinv(J,control_params_.mu);
-
-	// get goal and RCM frames in base link coordinates
-	KDL::Frame goal=target_*goal_;
-	KDL::Frame rcm=tip_*rcm_;
-
-	// compute error
-	KDL::Vector e_tip=goal.p-tip_.p;
-	KDL::Vector e_rcm=target_.p-rcm.p;
-	Eigen::Vector3d e;
-	e << e_tip[2],e_rcm[0],e_rcm[2];
 
 	// compute joints velocities
 	Eigen::Vector3d qp=psiJ*e;
@@ -245,13 +260,18 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 		ve=vf-J*qp;
 	}
 
+	// compute predicted velocity variation with respect base link frame
+	KDL::Vector uv(vo(1)-vf(1)+ve(1),0.0,0.0);
+	uv=sagittal.M*uv;
+
 	// update arm and base velocity commands, applying to the base the predicted
-	// velocity variation of the RCM (or tip) -along the x-direction of the base
-	// reference- due the redundancy control terms and joints speeds saturation
+	// velocity variation of the RCM (or tip) due the redundancy control terms
+	// and joints speeds saturation 
 	u_arm(1)=qp(0);
 	u_arm(2)=qp(1);
 	u_arm(3)=qp(2);
-	u_base(0)=vo(1)-vf(1)+ve(1);
+	u_base(0)=uv(0);
+	u_base(1)=uv(1);
 
 	// send velocity commands
 	this->armVelocities(u_arm);
