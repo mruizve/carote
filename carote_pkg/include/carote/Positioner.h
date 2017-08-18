@@ -47,6 +47,7 @@ namespace carote
 			// RCM, tip and wrist frames and Jacobians
 			KDL::Frame rcm_;
 			KDL::Frame tip_;
+			KDL::Frame sagittal_;
 			KDL::Frame shoulder_;
 			KDL::Jacobian J_rcm_;
 			KDL::Jacobian J_tip_;
