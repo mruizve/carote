@@ -171,6 +171,11 @@ void carote::Positioner::updateKinematics(void)
 	J_rcm_.changeBase(sagittal_.M.Inverse());
 }
 
+inline double gamma(double _e, double _alpha, double _beta)
+{
+	return sgn(_e)*(1.0-exp(-pow(_alpha*_e/_beta,2)));
+}
+
 void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 {
 	// velocities commands
@@ -207,82 +212,126 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	// compute errors in sagittal coordinates
 	KDL::Vector e_tip=goal.p-tip.p;
 	KDL::Vector e_rcm=target.p-rcm.p;
-	Eigen::Vector3d e_xz;
-	e_xz << e_tip[2],e_rcm[0],e_rcm[2];
+
+	// XY-task error vector
 	Eigen::Vector3d e_xy;
-	e_xy << e_tip[1],e_rcm[0],e_rcm[1];
+	e_xy << e_tip[1],0.0,e_rcm[1];
 
 	// build the Jacobian of the XY-task
-	//   -- tip constraint along the y-axis
-	//   -- RCM constraint along the x-axis
-	//   -- RCM constraint along the y-axis
-	Eigen::Matrix4d J_xy;
+	//   -- tip constraint along the y-axis,
+	//   -- RCM constraint along the x and y axis,
+	//   -- q(0) constraint (alignment between base and sagittal frames).
+	// (it is assumed that q_(0)->"arm_joint_1", ..., q_(4)->"arm_joint_5")
+	Eigen::Matrix<double,3,4> J_xy;
 	J_xy <<
-		J_tip_(1,0), -tip.p[0], 0.0, 1.0,
-		J_rcm_(0,0),  rcm.p[1], 1.0, 0.0,
-		J_rcm_(1,0), -rcm.p[0], 0.0, 1.0,
-		        1.0,       0.0, 0.0, 0.0;
+    //  q (0)         w         xp   yp
+		J_tip_(1,0),  tip.p[0], 0.0, 1.0, // yp_tip
+		J_rcm_(0,0), -rcm.p[1], 1.0, 0.0, // xp_rcm
+		J_rcm_(1,0),  rcm.p[0], 0.0, 1.0; // yp_rcm
+
+	// compute the weighted pseudo-inverse of the XY-task Jacobian; weighting
+	// is necessary because we are mixing variables of very different nature
+	//   -- q1 (joint space, radians),
+	//   -- w (workspace, radians),
+	//   -- xp and yp (workspace, meters).
+	Eigen::Matrix4d W_xy;
+	W_xy <<
+		2.5, 0.0, 0.0, 0.0,
+		0.0, 5.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0;
+	Eigen::Matrix<double,3,4> JW_xy=J_xy*W_xy;
+	Eigen::Matrix<double,4,3> psiJ_xy=W_xy*pinv(JW_xy,control_params_.mu);
+
+	// generate the null-space of the Jacobian of the XY-task
+	Eigen::Matrix<double,4,4> kerJ_xy=Eigen::Matrix4d::Identity()-psiJ_xy*J_xy;
+
+	// compute error minimization feedback gain (primary task)
+	double G1_xy=gamma(e_xy.norm(),0.1,control_params_.eps);
+
+	// compute orientation minimization feedback gain (secondary task)
+	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),1.0,0.05);
+
+	// compute arm and base velocities minimizing the XY-task error
+	Eigen::Vector4d u_xy=psiJ_xy*e_xy;
+	if( 0.5*control_params_.eps>u_xy.norm() )
+	{
+		u_xy/=control_params_.eps;
+	}
+	else
+	{
+		u_xy.normalize();
+	}
+	u_xy=control_params_.v*(G1_xy*u_xy+(1.0-fabs(G1_xy))*G2_xy*kerJ_xy*Eigen::Vector4d::UnitX());
+
+	// XZ-task error vector
+	// (we add any possible disturbance injected by the XY controller along
+	// the x-axis of the sagittal frame, i.e., xp_rcm or equivalently xp_tip)
+	Eigen::Vector3d e_xz;
+	e_xz << e_tip[2],e_rcm[0]+(J_xy.row(1)*u_xy),e_rcm[2];
 
 	// build the Jacobian of the XZ-task
 	//   -- tip constraint along the z-axis,
 	//   -- RCM constraint along x and z axis.
-	// (we assume that q_(0)->"arm_joint_1" and q_(5)->"arm_joint_5")
+	// (it is assumed that q_(0)->"arm_joint_1", ..., q_(4)->"arm_joint_5")
 	Eigen::Matrix3d J_xz;
-	J_xz.block<1,3>(0,0)=J_tip_.data.block(2,1,1,3);
-	J_xz.block<1,3>(1,0)=J_rcm_.data.block(0,1,1,3);
-	J_xz.block<1,3>(2,0)=J_rcm_.data.block(2,1,1,3);
-
-	// compute the pseudo-inverse of the XY-task Jacobian
-	Eigen::Matrix4d pJ_xy=pinv(J_xy,control_params_.mu);
+	J_xz.block<1,3>(0,0)=J_tip_.data.block(2,1,1,3); // zp_tip
+	J_xz.block<1,3>(1,0)=J_rcm_.data.block(0,1,1,3); // xp_rcm
+	J_xz.block<1,3>(2,0)=J_rcm_.data.block(2,1,1,3); // yp_rcm
 
 	// compute the pseudo-inverse of the XZ-task Jacobian
-	Eigen::Matrix3d pJ_xz=pinv(J_xz,control_params_.mu);
+	Eigen::Matrix3d psiJ_xz=pinv(J_xz,control_params_.mu);
 
-	// compute joints velocities
-	Eigen::Vector3d qp=pJ_xz*e_xz;
-	qp=control_params_.qp*(1-exp(-pow(0.1*e_xz.norm()/control_params_.eps,2)))*qp/qp.norm();
-
-	// get the manipulability measure, which should be proportional to the
-	// relative motion between the tip and the base (i.e., shoulder)
-	double um=this->manipulability();
-
-	// manipulability maximizing control (in joint velocity units)
-	um=sgn(um)*control_params_.qp*(1-exp(-pow(25*um/control_params_.eps,2)));
-
-	// get the self-collision potential field value
-	double uc=this->selfcollision();
-
-	// self-collision avoidance control (in joint velocity units)
-	uc=control_params_.qp*(1-exp(-pow(uc/25.0,2)));
-
-	// generate the null-space of the task along the z-axis
+	// generate the null-space of the Jacobian XZ-task along the z-axis
 	Eigen::Matrix<double,2,3> J_z;
 	J_z.block<1,3>(0,0)=J_tip_.data.block(2,1,1,3);
 	J_z.block<1,3>(1,0)=J_rcm_.data.block(2,1,1,3);
-	Eigen::Matrix<double,3,2> pJ_z=pinv(J_z,control_params_.mu);
+	Eigen::Matrix<double,3,2> psiJ_z=pinv(J_z,control_params_.mu);
+	Eigen::Matrix<double,3,3> kerJ_z=Eigen::Matrix3d::Identity()-psiJ_z*J_z;
 
-	// compute the desired velocity profile for task error minimization
-	Eigen::Vector3d vo=J_xz*qp;
+	// compute arm and base velocities minimizing the XZ-task error
+	Eigen::Vector3d u_xz=psiJ_xz*e_xz;
+	if( 0.5*control_params_.eps>u_xz.norm() )
+	{
+		u_xz/=control_params_.eps;
+	}
+	else
+	{
+		u_xz.normalize();
+	}
+	u_xz*=control_params_.qp*gamma(e_xz.norm(),0.1,control_params_.eps);
+
+	// get the manipulability measure, which should be proportional to the
+	// relative motion between the tip and the base (i.e., shoulder) and compute
+	// the associated control (in normalized joint velocity units)
+	double um=gamma(this->manipulability(),25.0,control_params_.eps);
+
+	// get the self-collision potential field value and compute the
+	// corresponding avoidance control (in normalized joint velocity units)
+	double uc=gamma(this->selfcollision(),1.0,20.0);
+
+	// compute the desired velocity profile for XZ-task error minimization
+	Eigen::Vector3d vo=J_xz*u_xz;
 
 	// update joints velocities with the manipulability and self-collision terms
 	// (projected to the null-space of the task's sub-Jacobian related to the z-axis)
-	qp=qp+(um+uc)*(Eigen::Matrix3d::Identity()-pJ_z*J_z)*pJ_xz*Eigen::Vector3d::UnitY();
+	u_xz+=control_params_.qp*(um+uc)*kerJ_z*psiJ_xz*Eigen::Vector3d::UnitY();
 
 	// compute the task's velocities after the addition of the control terms
-	Eigen::Vector3d vf=J_xz*qp;
+	Eigen::Vector3d vf=J_xz*u_xz;
 
 	// apply joints velocities saturation
 	Eigen::Vector3d ve=Eigen::Vector3d::Zero();
-	if( control_params_.qp<qp.lpNorm<Eigen::Infinity>() )
+	if( control_params_.qp<u_xz.lpNorm<Eigen::Infinity>() )
 	{
-		qp=control_params_.qp*qp/qp.lpNorm<Eigen::Infinity>();
+		u_xz*=control_params_.qp/u_xz.lpNorm<Eigen::Infinity>();
 
 		// recompute the perturbed velocity profile after saturation
-		ve=vf-J_xz*qp;
+		ve=vf-J_xz*u_xz;
 	}
 
 	// compute predicted velocity variation with respect base link frame
-	KDL::Vector uv(vo(1)-vf(1)+ve(1),0.0,0.0);
+	KDL::Vector uv(vo(1)-vf(1)+ve(1)+u_xy(2),u_xy(3),0.0);
 	uv=sagittal_.M*uv;
 
 	// clear previous control commands
@@ -292,11 +341,13 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	// update arm and base velocity commands, applying to the base the predicted
 	// velocity variation of the RCM (or tip) due the redundancy control terms
 	// and joints speeds saturation 
-	u_arm(1)=qp(0);
-	u_arm(2)=qp(1);
-	u_arm(3)=qp(2);
+	u_arm(0)=u_xy(0);
+	u_arm(1)=u_xz(0);
+	u_arm(2)=u_xz(1);
+	u_arm(3)=u_xz(2);
 	u_base(0)=uv(0);
 	u_base(1)=uv(1);
+	u_base(5)=u_xy(1);
 
 	// send velocity commands
 	this->armVelocities(u_arm);
