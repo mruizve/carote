@@ -92,9 +92,13 @@ double carote::Positioner::manipulability(void)
 
 double carote::Positioner::selfcollision(void)
 {
-	double d=((target_*goal_).p-shoulder_.p).Norm();
+	double d=(sagittal_.Inverse()*target_*goal_).p[0]-(sagittal_.Inverse()*shoulder_).p[0];
 	if( control_params_.d>=d )
 	{
+		if( 0.0>d )
+		{
+			d=0.01*control_params_.d;
+		}
 		return (1.0/d-1.0/control_params_.d)/(d*d);
 	}
 
@@ -250,9 +254,9 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	double G1_xy=gamma(e_xy.norm(),0.1,control_params_.eps);
 
 	// compute orientation minimization feedback gain (secondary task)
-	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),1.0,0.05);
+	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),0.8,0.05);
 
-	// compute arm and base velocities minimizing the XY-task error
+	// compute arm and base velocities minimizing the XY-task 
 	Eigen::Vector4d u_xy=psiJ_xy*e_xy;
 	if( 0.5*control_params_.eps>u_xy.norm() )
 	{
