@@ -240,8 +240,8 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	//   -- xp and yp (workspace, meters).
 	Eigen::Matrix4d W_xy;
 	W_xy <<
-		2.5, 0.0, 0.0, 0.0,
-		0.0, 5.0, 0.0, 0.0,
+		5.0, 0.0, 0.0, 0.0,
+		0.0, 7.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 1.0;
 	Eigen::Matrix<double,3,4> JW_xy=J_xy*W_xy;
@@ -254,7 +254,7 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	double G1_xy=gamma(e_xy.norm(),0.1,control_params_.eps);
 
 	// compute orientation minimization feedback gain (secondary task)
-	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),0.8,0.05);
+	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),0.7,0.05);
 
 	// compute arm and base velocities minimizing the XY-task 
 	Eigen::Vector4d u_xy=psiJ_xy*e_xy;
@@ -325,17 +325,16 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	Eigen::Vector3d vf=J_xz*u_xz;
 
 	// apply joints velocities saturation
-	Eigen::Vector3d ve=Eigen::Vector3d::Zero();
 	if( control_params_.qp<u_xz.lpNorm<Eigen::Infinity>() )
 	{
 		u_xz*=control_params_.qp/u_xz.lpNorm<Eigen::Infinity>();
 
 		// recompute the perturbed velocity profile after saturation
-		ve=vf-J_xz*u_xz;
+		vf=J_xz*u_xz;
 	}
 
 	// compute predicted velocity variation with respect base link frame
-	KDL::Vector uv(vo(1)-vf(1)+ve(1)+u_xy(2),u_xy(3),0.0);
+	KDL::Vector uv(vo(1)-vf(1)+u_xy(2),u_xy(3),0.0);
 	uv=sagittal_.M*uv;
 
 	// clear previous control commands
