@@ -92,7 +92,7 @@ double carote::Positioner::manipulability(void)
 
 double carote::Positioner::selfcollision(void)
 {
-	double d=(sagittal_.Inverse()*target_*goal_).p[0]-(sagittal_.Inverse()*shoulder_).p[0];
+	double d=(sagittal_.Inverse()*tip_).p[0]-(sagittal_.Inverse()*shoulder_).p[0];
 	if( control_params_.d>=d )
 	{
 		if( 0.0>d )
@@ -180,6 +180,18 @@ inline double gamma(double _e, double _alpha, double _beta)
 	return sgn(_e)*(1.0-exp(-pow(_alpha*_e/_beta,2)));
 }
 
+template<typename _T> inline void normalize(_T& _u, double _epsilon)
+{
+	if( _epsilon>_u.norm() )
+	{
+		_u/=_epsilon;
+	}
+	else
+	{
+		_u.normalize();
+	}
+}
+
 void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 {
 	// velocities commands
@@ -240,8 +252,8 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	//   -- xp and yp (workspace, meters).
 	Eigen::Matrix4d W_xy;
 	W_xy <<
-		5.0, 0.0, 0.0, 0.0,
-		0.0, 7.0, 0.0, 0.0,
+		8.0, 0.0, 0.0, 0.0,
+		0.0, 3.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 1.0;
 	Eigen::Matrix<double,3,4> JW_xy=J_xy*W_xy;
@@ -254,19 +266,14 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	double G1_xy=gamma(e_xy.norm(),0.1,control_params_.eps);
 
 	// compute orientation minimization feedback gain (secondary task)
-	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),0.7,0.05);
+	double G2_xy=gamma(this->getWorkPose()(0)-q_(0),1.0,1.0);
 
-	// compute arm and base velocities minimizing the XY-task 
+	// compute arm and base velocities minimizing the XY-tasks
 	Eigen::Vector4d u_xy=psiJ_xy*e_xy;
-	if( 0.5*control_params_.eps>u_xy.norm() )
-	{
-		u_xy/=control_params_.eps;
-	}
-	else
-	{
-		u_xy.normalize();
-	}
-	u_xy=control_params_.v*(G1_xy*u_xy+(1.0-fabs(G1_xy))*G2_xy*kerJ_xy*Eigen::Vector4d::UnitX());
+	Eigen::Vector4d u0_xy=kerJ_xy*Eigen::Vector4d::UnitX();
+	normalize(u_xy,0.5*control_params_.eps);
+	normalize(u0_xy,0.5*control_params_.eps);
+	u_xy=control_params_.v*(G1_xy*u_xy+G2_xy*u0_xy);
 
 	// XZ-task error vector
 	// (we add any possible disturbance injected by the XY controller along
@@ -295,14 +302,7 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 
 	// compute arm and base velocities minimizing the XZ-task error
 	Eigen::Vector3d u_xz=psiJ_xz*e_xz;
-	if( 0.5*control_params_.eps>u_xz.norm() )
-	{
-		u_xz/=control_params_.eps;
-	}
-	else
-	{
-		u_xz.normalize();
-	}
+	normalize(u_xz,0.5*control_params_.eps);
 	u_xz*=control_params_.qp*gamma(e_xz.norm(),0.1,control_params_.eps);
 
 	// get the manipulability measure, which should be proportional to the
