@@ -29,9 +29,20 @@ void carote::Controller::cbState(const sensor_msgs::JointState& _msg)
 		{
 			if( _msg.name[j]==model_->getJointName(i) )
 			{
+				// update pose
 				q_(i)=_msg.position[j];
+
+				// get velocity variation
+				// (there's no time step to compute the acceleration)
+				qpp_(i)=_msg.velocity[j]-qp_(i);
+
+				// update velocity
 				qp_(i)=_msg.velocity[j];
-				tau_(i)=_msg.effort[i];
+
+				// update measured torque
+				tau_t_(i)=_msg.effort[i];
+
+				// count number of modified joint variables
 				updated++;
 			}
 		}

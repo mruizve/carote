@@ -27,7 +27,9 @@ carote::Controller::Controller(const std::string& _name)
 	// resize joint states arrays
 	q_.resize(model_->getNrOfJoints());
 	qp_.resize(model_->getNrOfJoints());
-	tau_.resize(model_->getNrOfJoints());
+	qpp_.resize(model_->getNrOfJoints());
+	tau_n_.resize(model_->getNrOfJoints());
+	tau_t_.resize(model_->getNrOfJoints());
 
 	// poses initialization
 	this->initPoses();
