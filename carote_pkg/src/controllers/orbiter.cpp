@@ -175,23 +175,6 @@ void carote::Orbiter::updateKinematics(void)
 	J_rcm_.changeBase(sagittal_.M.Inverse());
 }
 
-inline double gamma(double _e, double _alpha, double _beta)
-{
-	return sgn(_e)*(1.0-exp(-pow(_alpha*_e/_beta,2)));
-}
-
-template<typename _T> inline void normalize(_T& _u, double _epsilon)
-{
-	if( _epsilon>_u.norm() )
-	{
-		_u/=_epsilon;
-	}
-	else
-	{
-		_u.normalize();
-	}
-}
-
 void carote::Orbiter::cbControl(const ros::TimerEvent& _event)
 {
 	// velocities commands

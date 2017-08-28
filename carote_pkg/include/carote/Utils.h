@@ -49,6 +49,25 @@ namespace Eigen
 		//compute the pseudo inverse psi = V * Sigma^-1 * U^T
 		return svd.matrixV()*Sigma.transpose()*svd.matrixU().transpose();
 	}
+
+	// robust vector normalization
+	template<typename _T> inline void normalize(_T& _u, double _epsilon)
+	{
+		if( _epsilon>_u.norm() )
+		{
+			_u/=_epsilon;
+		}
+		else
+		{
+			_u.normalize();
+		}
+	}
+}
+
+// non-linear feedback control gain
+inline double gamma(double _e, double _alpha, double _beta)
+{
+	return sgn(_e)*(1.0-exp(-pow(_alpha*_e/_beta,2)));
 }
 
 #endif
