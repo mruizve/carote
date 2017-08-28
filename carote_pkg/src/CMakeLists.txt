@@ -46,7 +46,7 @@ add_dependencies( follower ${PROJECT_NAME}_gencfg carote_msgs_generate_messages_
 target_compile_definitions( follower PRIVATE FOLLOWER=0 )
 target_link_libraries( follower controller ${catkin_LIBRARIES} )
 
-add_executable( positioner controllers/node.cpp controllers/positioner.cpp )
-add_dependencies( positioner ${PROJECT_NAME}_gencfg carote_msgs_generate_messages_cpp )
-target_compile_definitions( positioner PRIVATE POSITIONER=0 )
-target_link_libraries( positioner controller ${catkin_LIBRARIES} )
+add_executable( orbiter controllers/node.cpp controllers/orbiter.cpp )
+add_dependencies( orbiter ${PROJECT_NAME}_gencfg carote_msgs_generate_messages_cpp )
+target_compile_definitions( orbiter PRIVATE ORBITER=0 )
+target_link_libraries( orbiter controller ${catkin_LIBRARIES} )

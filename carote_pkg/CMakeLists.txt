@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 generate_dynamic_reconfigure_options(
   cfg/Follower.cfg
   cfg/Operator.cfg
-  cfg/Positioner.cfg
+  cfg/Orbiter.cfg
 )
 
 catkin_package(

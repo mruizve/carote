@@ -1,15 +1,15 @@
 #include<geometry_msgs/Twist.h>
-#include "carote/Positioner.h"
+#include "carote/Orbiter.h"
 #include "carote/Utils.h"
 
-carote::Positioner::Positioner(const std::string& _name)
+carote::Orbiter::Orbiter(const std::string& _name)
 :
 	Controller(_name),
 	kdl_J_solver_(NULL)
 {
 	// ros stuff: dynamic reconfiguration of controller parameters
-	dynamic_reconfigure::Server<carote::PositionerConfig>::CallbackType f;
-	f=boost::bind(&carote::Positioner::cbReconfigure,this,_1,_2);
+	dynamic_reconfigure::Server<carote::OrbiterConfig>::CallbackType f;
+	f=boost::bind(&carote::Orbiter::cbReconfigure,this,_1,_2);
 	server_.setCallback(f);
 
 	// ros stuff: get the name of shoulder reference frame
@@ -23,7 +23,7 @@ carote::Positioner::Positioner(const std::string& _name)
 	J_tip_.resize(model_->getNrOfJoints());
 }
 
-carote::Positioner::~Positioner(void)
+carote::Orbiter::~Orbiter(void)
 {
 	if( NULL!=kdl_J_solver_)
 	{
@@ -31,7 +31,7 @@ carote::Positioner::~Positioner(void)
 	}
 }
 
-double carote::Positioner::manipulability(void)
+double carote::Orbiter::manipulability(void)
 {
 	// get the step size proportional to the time step and maximum joints velocities
 	double h=control_params_.qp/control_params_.rate;
@@ -66,7 +66,7 @@ double carote::Positioner::manipulability(void)
 	// compute the tip Jacobian at nearby states
 	if( 0>model_->JntToJac(ql,J_tip_l) || 0>model_->JntToJac(qr,J_tip_r) )
 	{
-		CAROTE_NODE_ABORT("Positioner::manipulability(): unexpected error from Jacobian solver");
+		CAROTE_NODE_ABORT("Orbiter::manipulability(): unexpected error from Jacobian solver");
 	}
 
 	// change Jacobians base using the orientation of the sagittal frame
@@ -90,7 +90,7 @@ double carote::Positioner::manipulability(void)
 	return (mr-ml)/(2.0*h);
 }
 
-double carote::Positioner::selfcollision(void)
+double carote::Orbiter::selfcollision(void)
 {
 	double d=(sagittal_.Inverse()*tip_).p[0]-(sagittal_.Inverse()*shoulder_).p[0];
 	if( control_params_.d>=d )
@@ -105,7 +105,7 @@ double carote::Positioner::selfcollision(void)
 	return 0.0;
 }
 
-void carote::Positioner::updateStates(const KDL::JntArray& _u)
+void carote::Orbiter::updateStates(const KDL::JntArray& _u)
 {
 	// if the robot was not updated, then
 	if( !states_flag_ )
@@ -123,7 +123,7 @@ void carote::Positioner::updateStates(const KDL::JntArray& _u)
 	}
 }
 
-void carote::Positioner::updateTarget(const KDL::Twist& _u)
+void carote::Orbiter::updateTarget(const KDL::Twist& _u)
 {
 	// if the target frame was not updated, then
 	if( !target_flag_ )
@@ -147,7 +147,7 @@ void carote::Positioner::updateTarget(const KDL::Twist& _u)
 	}
 }
 
-void carote::Positioner::updateKinematics(void)
+void carote::Orbiter::updateKinematics(void)
 {
 	// number of the shoulder segment inside the robot model (chain)
 	static int shoulderNR=model_->getSegmentIndex(frame_id_shoulder_.substr(1));
@@ -155,13 +155,13 @@ void carote::Positioner::updateKinematics(void)
 	// get tip and shoulder frames using forward kinematics
 	if( 0>model_->JntToCart(q_,tip_) || 0>model_->JntToCart(q_,shoulder_,shoulderNR) )
 	{
-		CAROTE_NODE_ABORT("Positioner::cbControl(): unexpected error from forward kinematics");
+		CAROTE_NODE_ABORT("Orbiter::cbControl(): unexpected error from forward kinematics");
 	}
 
 	// compute Jacobians of tip and RCM
 	if( 0>model_->JntToJac(q_,J_tip_) || 0>kdl_J_solver_->JntToJac(q_,J_rcm_) )
 	{
-		CAROTE_NODE_ABORT("Positioner::cbControl(): unexpected error from Jacobian solver");
+		CAROTE_NODE_ABORT("Orbiter::cbControl(): unexpected error from Jacobian solver");
 	}
 
 	// compute sagittal frame
@@ -192,7 +192,7 @@ template<typename _T> inline void normalize(_T& _u, double _epsilon)
 	}
 }
 
-void carote::Positioner::cbControl(const ros::TimerEvent& _event)
+void carote::Orbiter::cbControl(const ros::TimerEvent& _event)
 {
 	// velocities commands
 	static KDL::Twist u_base;
@@ -362,7 +362,7 @@ void carote::Positioner::cbControl(const ros::TimerEvent& _event)
 	this->baseTwist(u_base);
 }
 
-void carote::Positioner::cbReconfigure(carote::PositionerConfig& _config, uint32_t _level)
+void carote::Orbiter::cbReconfigure(carote::OrbiterConfig& _config, uint32_t _level)
 {
 	// update parameters
 	control_params_=_config;
@@ -379,7 +379,7 @@ void carote::Positioner::cbReconfigure(carote::PositionerConfig& _config, uint32
 	}
 }
 
-void carote::Positioner::cbTarget(const geometry_msgs::PoseArray& _msg)
+void carote::Orbiter::cbTarget(const geometry_msgs::PoseArray& _msg)
 {
 	// retrieve current state
 	int flag=operator_flag_;

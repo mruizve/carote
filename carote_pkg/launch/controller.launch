@@ -11,7 +11,7 @@
 	<group ns="carote">
 		<!-- controller node -->
 		<!-- <node name="follower" pkg="carote" type="follower" output="screen" /> -->
-		<node name="positioner" pkg="carote" type="positioner" output="screen" />
+		<node name="orbiter" pkg="carote" type="orbiter" output="screen" />
 
 		<!-- controllers gui -->
 		<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="controller_gui" output="screen" />

@@ -4,8 +4,8 @@
 #ifdef FOLLOWER
 	#include "carote/Follower.h"
 #endif
-#ifdef POSITIONER
-	#include "carote/Positioner.h"
+#ifdef ORBITER
+	#include "carote/Orbiter.h"
 #endif
 
 // signal-safe flag for whether shutdown is requested
@@ -54,8 +54,8 @@ int main(int argc, char **argv)
 	#ifdef FOLLOWER
 		carote::Follower controller(ros::this_node::getName());
 	#endif
-	#ifdef POSITIONER
-		carote::Positioner controller(ros::this_node::getName());
+	#ifdef ORBITER
+		carote::Orbiter controller(ros::this_node::getName());
 	#endif
 
 	// initialize robot
