@@ -25,9 +25,8 @@ catkin_package(
 #	DEPENDS system_lib
 )
 
-include_directories(
-  ${catkin_INCLUDE_DIRS} include
-)
+include_directories( SYSTEM ${catkin_INCLUDE_DIRS} )
+include_directories( include )
 
 # force release type when no type is defined
 if( NOT CMAKE_BUILD_TYPE )
