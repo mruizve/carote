@@ -29,4 +29,14 @@ include_directories(
   ${catkin_INCLUDE_DIRS} include
 )
 
+# force release type when no type is defined
+if( NOT CMAKE_BUILD_TYPE )
+  set( CMAKE_BUILD_TYPE Release )
+endif()
+
+# extra compiler flags 
+set( CMAKE_CXX_FLAGS "-Wall -Wextra" )
+set( CMAKE_CXX_FLAGS_DEBUG "-g" )
+set( CMAKE_CXX_FLAGS_RELEASE "-O3" )
+
 subdirs( src )
