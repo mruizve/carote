@@ -15,6 +15,7 @@ target_link_libraries( operator ${catkin_LIBRARIES} )
 # model library
 add_library( model
 	model/chain.cpp
+	model/dynamics.cpp
 	model/model.cpp
 	model/joints.cpp
 	model/kinematics.cpp )

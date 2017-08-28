@@ -1,10 +1,10 @@
 #include "carote/Model.h"
 #include "carote/Utils.h"
 
-void carote::Model::countNrOfJoints(urdf::Model& urdf_model)
+void carote::Model::countNrOfJoints(const urdf::Model& urdf_model)
 {
 	nJoints_=0;
-    for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
+    for( size_t i=0; kdl_chain_.getNrOfSegments()>i; i++ )
     {
 		KDL::Segment segment=kdl_chain_.getSegment(i);
 
@@ -32,9 +32,9 @@ int carote::Model::getNrOfJoints(void) const
 	return nJoints_;
 }
 
-const std::string& carote::Model::getJointName(int i) const
+const std::string& carote::Model::getJointName(size_t i) const
 {
-	if( 0>i || q_names_.size()<=i )
+	if( q_names_.size()<=i )
 	{
         CAROTE_NODE_ABORT("carote::Model::getJointName(): index out of bounds");
 	}
@@ -47,9 +47,9 @@ const std::vector<std::string>& carote::Model::getJointsNames(void) const
 	return q_names_;
 }
 
-const std::string& carote::Model::getJointUnit(int i) const
+const std::string& carote::Model::getJointUnit(size_t i) const
 {
-	if( 0>i || q_names_.size()<=i )
+	if( q_names_.size()<=i )
 	{
         CAROTE_NODE_ABORT("carote::Model::getJointName(): index out of bounds");
 	}
@@ -62,9 +62,9 @@ const std::vector<std::string>& carote::Model::getJointsUnits(void) const
 	return q_units_;
 }
 
-const std::string& carote::Model::getSpeedUnit(int i) const
+const std::string& carote::Model::getSpeedUnit(size_t i) const
 {
-	if( 0>i || q_names_.size()<=i )
+	if( q_names_.size()<=i )
 	{
         CAROTE_NODE_ABORT("carote::Model::getJointName(): index out of bounds");
 	}

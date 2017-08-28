@@ -8,7 +8,7 @@ const KDL::Chain& carote::Model::getChain(void) const
 
 int carote::Model::getSegmentIndex(const std::string& _name) const
 {
-	for( int i=0; kdl_chain_.getNrOfSegments()>i; i++ )
+	for( size_t i=0; kdl_chain_.getNrOfSegments()>i; i++ )
 	{
 		if( kdl_chain_.getSegment(i).getName()==_name )
 		{

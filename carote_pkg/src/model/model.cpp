@@ -35,7 +35,7 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
 	q_upper_.resize(nJoints_);
 
 	// for each segment of the chain,
-	for( int i=0,j=0; kdl_chain_.getNrOfSegments()>i; i++ )
+	for( size_t i=0,j=0; kdl_chain_.getNrOfSegments()>i; i++ )
 	{
 		KDL::Segment segment=kdl_chain_.getSegment(i);
 
@@ -83,6 +83,11 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
 
     // forward position solver
     kdl_fp_solver_=new KDL::ChainFkSolverPos_recursive(kdl_chain_);
+
+	// initialize dynamic model
+	dyn_B_=Eigen::MatrixXd(nJoints_,nJoints_);
+	dyn_S_=Eigen::MatrixXd(nJoints_,nJoints_);
+	dyn_g_=Eigen::VectorXd(nJoints_);
 
 	// dump model
     for( int i=0; nJoints_>i; i++ )
