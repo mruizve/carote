@@ -56,8 +56,6 @@ namespace carote
 			// kinematics solvers
 			KDL::ChainJntToJacSolver *kdl_J_solver_;           // Jacobian
 			KDL::ChainFkSolverPos_recursive *kdl_fp_solver_;   // forward position
-			KDL::ChainIkSolverVel_pinv_givens *kdl_iv_solver_; // inverse velocity
-			KDL::ChainIkSolverPos_NR_JL *kdl_ip_solver_;       // inverse position
 	};
 }
 

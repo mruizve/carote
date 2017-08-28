@@ -5,9 +5,7 @@
 carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base, const std::string& _frame_id_tip)
 :
     kdl_J_solver_(NULL),
-    kdl_fp_solver_(NULL),
-    kdl_iv_solver_(NULL),
-	kdl_ip_solver_(NULL)
+    kdl_fp_solver_(NULL)
 {
 	// load URDF model
 	urdf::Model urdf_model;
@@ -83,13 +81,8 @@ carote::Model::Model(const std::string& _xml, const std::string& _frame_id_base,
 	// Jacobian solver
 	kdl_J_solver_=new KDL::ChainJntToJacSolver(kdl_chain_);
 
-    // forward position and inverse velocity solvers
-    // (needed by the geometric -inverse position- solver)
+    // forward position solver
     kdl_fp_solver_=new KDL::ChainFkSolverPos_recursive(kdl_chain_);
-    kdl_iv_solver_=new KDL::ChainIkSolverVel_pinv_givens(kdl_chain_);
-    
-    // geometric solver definition (with joint limits)
-	kdl_ip_solver_=new KDL::ChainIkSolverPos_NR_JL(kdl_chain_,q_lower_,q_upper_,*kdl_fp_solver_,*kdl_iv_solver_,500,1e-6);
 
 	// dump model
     for( int i=0; nJoints_>i; i++ )
@@ -108,15 +101,5 @@ carote::Model::~Model(void)
 	if( NULL!=kdl_fp_solver_ )
 	{
 		delete kdl_fp_solver_;
-	}
-
-	if( NULL!=kdl_iv_solver_)
-	{
-		delete kdl_iv_solver_;
-	}
-
-	if( NULL!=kdl_ip_solver_ )
-	{
-		delete kdl_ip_solver_;
 	}
 }
