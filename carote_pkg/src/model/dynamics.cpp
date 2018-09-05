@@ -196,7 +196,7 @@ inline void carote::Model::updateGravity(const KDL::JntArray& _q)
 
 int carote::Model::JntToTau
 (
-	const KDL::JntArray& _q,
+	KDL::JntArray _q,
 	const KDL::JntArray& _qp,
 	const KDL::JntArray& _qpp,
 	KDL::JntArray& _tau

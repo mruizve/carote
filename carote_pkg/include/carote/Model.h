@@ -17,7 +17,7 @@ namespace carote
 			~Model(void);
 
 			// dynamics
-			int JntToTau(const KDL::JntArray& _q, const KDL::JntArray& _qp, const KDL::JntArray& _qpp, KDL::JntArray& _tau);
+			int JntToTau(KDL::JntArray _q, const KDL::JntArray& _qp, const KDL::JntArray& _qpp, KDL::JntArray& _tau);
 			const Eigen::MatrixXd& getInertiaMatrix(void) const;
 			const Eigen::MatrixXd& getCoriolisCentifugalTerms(void) const;
 			const Eigen::VectorXd& getGravityTerms(void) const;

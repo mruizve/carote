@@ -107,11 +107,12 @@ double carote::Orbiter::selfcollision(void)
 
 void carote::Orbiter::updateStates(const KDL::JntArray& _u)
 {
+	// get the current time step
+	double dt=1.0/control_params_.rate;
+
 	// if the robot was not updated, then
 	if( !states_flag_ )
 	{
-		// get the current time step
-		double dt=1.0/control_params_.rate;
 
 		// update the robot pose using vanilla odometry
 		q_.data=q_.data+dt*_u.data;

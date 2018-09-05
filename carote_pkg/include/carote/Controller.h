@@ -63,7 +63,7 @@ namespace carote
 
 			// ros stuff: topics subscribers/publishers
 			ros::Publisher pub_q_;         // joint values
-			ros::Publisher pub_qp_;        // joints velocities
+			ros::Publisher pub_qp_;        // joint velocities
 			ros::Publisher pub_u_;         // base twist
 			ros::Subscriber sub_operator_;
 			ros::Subscriber sub_state_;
