@@ -202,6 +202,13 @@ int carote::Model::JntToTau
 	KDL::JntArray& _tau
 )
 {
+	static const double q_offsets[5]={2.9496, 1.1344, -2.5481, 1.7889, 2.9234};
+	_q(0)=_q(0)-q_offsets[0];
+	_q(1)=_q(1)-q_offsets[1];
+	_q(2)=-q_offsets[2]+_q(2);
+	_q(3)=_q(3)-q_offsets[3];
+	_q(4)=_q(4)-q_offsets[4];
+
 	// update dynamic model
 	updateInertia(_q);
 	updateCoriolisCentrifugal(_q,_qp);

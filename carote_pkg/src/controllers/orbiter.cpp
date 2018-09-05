@@ -31,6 +31,9 @@ carote::Orbiter::~Orbiter(void)
 	}
 }
 
+// double M=0.0;
+// double DM=0.0;
+
 double carote::Orbiter::manipulability(void)
 {
 	// get the step size proportional to the time step and maximum joints velocities
@@ -87,6 +90,8 @@ double carote::Orbiter::manipulability(void)
 	// approximate manipulability directional derivative by center difference
 	double ml=sqrt(fabs((Jl*Jl.transpose()).determinant()));
 	double mr=sqrt(fabs((Jr*Jr.transpose()).determinant()));
+// M=mr;
+// DM=(mr-ml)/(2.0*h);
 	return (mr-ml)/(2.0*h);
 }
 
@@ -121,6 +126,27 @@ void carote::Orbiter::updateStates(const KDL::JntArray& _u)
 	{
 		// otherwise clear the flag and enjoy the feedback
 		states_flag_=0;
+
+		// compute acceleration from velocity variation
+		qpp_.data/=dt;
+
+		// compute nominal torque
+		model_->JntToTau(q_,qp_,qpp_,tau_n_);
+
+// static double T=0.0;
+// FILE* file=fopen("/home/manuel/workspace/ros/src/carote/data/detector/raw.txt","aw");
+// fprintf
+// (
+	// file,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+	// T,
+	// q_(0),q_(1),q_(2),q_(3),
+	// qp_(0),qp_(1),qp_(2),qp_(3),
+	// _u(0),_u(1),_u(2),_u(3),
+	// tau_t_(0),tau_t_(1),tau_t_(2),tau_t_(3),
+	// tau_n_(0),tau_n_(1),tau_n_(2),tau_n_(3)
+// );
+// fclose(file);
+// T+=1.0/control_params_.rate;
 	}
 }
 
@@ -344,6 +370,21 @@ void carote::Orbiter::cbControl(const ros::TimerEvent& _event)
 	// send velocity commands
 	this->armVelocities(u_arm);
 	this->baseTwist(u_base);
+// static double T=0.0;
+// FILE* file=fopen("/home/manuel/workspace/ros/src/carote/data/controller/raw.txt","aw");
+// fprintf
+// (
+	// file,
+	// "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+	// T,
+	// u_arm(0),u_arm(1),u_arm(2),u_arm(3),
+	// u_base(0),u_base(1),u_base(5),
+	// M,DM,
+	// e_rcm[0]+(J_xy.row(1)*u_xy),e_rcm[1],e_rcm[2],
+	// e_tip[0],e_tip[1],e_tip[2]
+// );
+// fclose(file);
+// T+=1.0/control_params_.rate;
 }
 
 void carote::Orbiter::cbReconfigure(carote::OrbiterConfig& _config, uint32_t _level)
